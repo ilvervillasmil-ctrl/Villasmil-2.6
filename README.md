@@ -85,30 +85,36 @@ cd tests
 PYTHONPATH=.. pytest -q
 
 
-# Villasmil‑Ω v2.6 — Framework & Tests
 
-Python package: `villasmil_omega`  
-Author: Ilver Villasmil — The Arquitecto  
-Repository: https://github.com/ilvervillasmil/Villasmil-2.6  
+***
+
+### Versión en español (por si quieres README bilingüe o un `docs/README-es.md`)
+
+```markdown
+# Villasmil‑Ω v2.6 — Marco y Pruebas
+
+Paquete Python: `villasmil_omega`  
+Autor: Ilver Villasmil — The Arquitecto  
+Repositorio: https://github.com/ilvervillasmil/Villasmil-2.6  
 
 Estado actual:
 - Todas las pruebas automatizadas pasan tanto en local (Codespaces) como en GitHub Actions.
-- El paquete está estructurado como módulo Python (`villasmil_omega`) con tests en `tests/`.
-- Se ha verificado el comportamiento básico de tensión global Θ(C), campo de integración dinámica L2 y penalizaciones MC/CI.
+- El paquete está estructurado como un módulo Python estándar (`villasmil_omega`) con pruebas en `tests/`.
+- La batería actual valida el comportamiento básico de la tensión global Θ(C), el campo de integración dinámica L2, las penalizaciones MC/CI y la estructura mínima de PPR.
 
 ---
 
 ## 1. Qué es Villasmil‑Ω v2.6
 
-Villasmil‑Ω v2.6 es un framework experimental para evaluar **coherencia global** en sistemas de información y agentes de IA.  
+Villasmil‑Ω v2.6 es un framework experimental para evaluar la **coherencia global** en sistemas de información y agentes de IA.  
 El paquete implementa funciones para:
 
-- Calcular tensión global Θ(C) en conjuntos de premisas.
+- Calcular la tensión global Θ(C) sobre conjuntos de premisas.
 - Actualizar el campo de integración dinámica L2.
 - Aplicar penalizaciones sobre MC (Meta‑Coherencia) y CI (Coherencia Interna).
-- Calcular relevancia \\(R(C)\\) y producir sugerencias PPR estructuradas.
+- Calcular la relevancia \\(R(C)\\) y producir sugerencias PPR estructuradas.
 
-El objetivo de esta versión es dejar una **base sólida y testeada** sobre la cual puedan crecer versiones posteriores más complejas.
+El objetivo de esta versión es ofrecer una **base limpia y testeada** sobre la cual puedan crecer versiones más complejas del marco.
 
 ---
 
@@ -116,57 +122,57 @@ El objetivo de esta versión es dejar una **base sólida y testeada** sobre la c
 
 - `villasmil_omega/`  
   - `__init__.py` — punto de entrada del paquete, expone las funciones núcleo.  
-  - `core.py` — implementación de lógica principal (Θ(C), L2, penalizaciones, R, PPR).
+  - `core.py` — implementación principal (Θ(C), L2, penalizaciones, R, PPR).
 
 - `tests/`  
-  - `test_basic.py` — harness inicial de pruebas.  
-  - `test_core_edges.py` — pruebas dirigidas a bordes de L2 y penalizaciones.  
-  - `test_core_more.py` — casos adicionales sobre funciones de core.  
+  - `test_basic.py` — arnés inicial de pruebas.  
+  - `test_core_edges.py` — pruebas de borde para L2 y penalizaciones.  
+  - `test_core_more.py` — casos adicionales sobre las funciones de `core.py`.  
 
 - `.github/workflows/`  
   - `test.yml` — pipeline de CI que ejecuta pytest en GitHub Actions.
 
 ---
 
-## 3. Estado de pruebas
+## 3. Estado de las pruebas
 
 Historia breve:
-- Al inicio, varias ejecuciones de CI fallaban (imports rotos, archivos de test en rutas incorrectas, nombres de archivo mal formados).
-- Se reestructuró el paquete (`__init__.py`, `core.py`) y se normalizó la carpeta `tests/`.
-- Actualmente, los tests pasan de forma consistente en local y en GitHub Actions.
+- Al inicio, varias ejecuciones de CI fallaban por problemas de imports, archivos de test mal ubicados y nombres inconsistentes.
+- Se normalizó la estructura del paquete (`__init__.py`, `core.py`) y la carpeta `tests/`.
+- El estado actual es estable: las pruebas pasan de forma consistente en local y en CI.
 
-Estado actual de la suite:
+Batería actual:
 - Total de tests (aprox.): 8  
 - Pasan: 8  
 - Fallan: 0  
 
 Aspectos verificados:
 
-1. **Θ(C) — tensión global básica**  
-   - No inventa conflicto cuando las premisas son compatibles.  
-   - Produce tensión no nula en presencia de contradicciones simples.
+1. **Tensión global Θ(C)**  
+   - Devuelve tensión cero cuando las premisas son compatibles (no inventa conflictos).  
+   - Devuelve tensión distinta de cero ante contradicciones simples.
 
-2. **Campo L2**  
-   - `update_L2` ajusta L2 en la dirección esperada (convergencia hacia el valor óptimo en casos simples).  
-   - Se comprueba que L2 no se mueve de manera arbitraria.
+2. **Campo de Integración Dinámica L2**  
+   - `update_L2` mueve L2 en la dirección esperada (convergencia hacia el valor óptimo en casos simples).  
+   - L2 no cambia de forma arbitraria.
 
 3. **Penalizaciones MC/CI**  
    - `penalizar_MC_CI` reduce MC y CI cuando L2 se aleja del óptimo.  
-   - Se validan casos de desviación y de valor óptimo.
+   - Se ejercitan casos de desviación y de valor óptimo.
 
 4. **Utilidades de core**  
-   - `compute_R` devuelve relevancia positiva bajo parámetros plausibles.  
+   - `compute_R` devuelve relevancia positiva para parámetros plausibles.  
    - `ppr_suggest` devuelve un diccionario estructurado con claves como `accepted` y `alternative`.
 
-Estos tests no prueban todo el framework, pero sí dan **confianza alta** en los invariantes más críticos que ya están implementados.
+Estas pruebas no demuestran todo el framework, pero sí dan **alta confianza** en los invariantes más críticos que están implementados ahora.
 
 ---
 
 ## 4. Cómo ejecutar las pruebas
 
-En local (por ejemplo, Codespaces):
+En local (por ejemplo, GitHub Codespaces):
 
 ```bash
-# Desde la carpeta raíz del repo
+# Desde la raíz del repositorio
 cd tests
 PYTHONPATH=.. pytest -q

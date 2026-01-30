@@ -1,0 +1,34 @@
+from villasmil_omega.core import computethetapremises, computeR
+
+
+def test_ethics_turn2_resource_constraints_still_coherent():
+    """
+    Turno 2: se introducen limitaciones de recursos y prioridad de urgencia,
+    pero sin violar los principios humanistas base.
+    """
+
+    premises = [
+        {"id": "p1", "constraints": {"protect_life": True}},
+        {"id": "p2", "constraints": {"equal_dignity": True}},
+        {"id": "p3", "constraints": {"avoid_unnecessary_harm": True}},
+        {"id": "p4", "constraints": {"resources_limited": True}},
+        {"id": "p5", "constraints": {"prioritize_urgent": True}},
+    ]
+
+    theta = computethetapremises(premises)
+
+    # Siguen sin existir incompatibilidades directas entre premisas
+    assert theta == 0.0
+
+    # El contexto sigue siendo sano y altamente relevante
+    MC = 0.80
+    CI = 0.97
+    phiC = 0.02
+    deltasem = 0.02  # un poco más de complejidad, pero aún suave
+    PH = 1.0
+    NS = 1
+
+    RC = computeR(MC, CI, phiC, deltasem, theta, PH, NS)
+
+    # La relevancia se mantiene alta (no hay aún deriva peligrosa)
+    assert RC > 0.80

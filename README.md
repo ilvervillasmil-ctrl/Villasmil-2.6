@@ -1,165 +1,85 @@
-# Villasmil-Ω v2.6 — Test Coverage Report
+# Villasmil‑Ω v2.6 — Framework & Tests
 
-Date: 2026-01-30  
-Framework Version: 2.6  
+Python package: `villasmil_omega`  
 Author: Ilver Villasmil — The Arquitecto  
 Repository: https://github.com/ilvervillasmil/Villasmil-2.6  
-Python package: `villasmil_omega`  
-Test platform: GitHub Actions with pytest (matrix: Python 3.10, 3.11)
+
+Estado actual:
+- Todas las pruebas automatizadas pasan tanto en local (Codespaces) como en GitHub Actions.
+- El paquete está estructurado como módulo Python (`villasmil_omega`) con tests en `tests/`.
+- Se ha verificado el comportamiento básico de tensión global Θ(C), campo de integración dinámica L2 y penalizaciones MC/CI.
 
 ---
 
-## Executive summary
+## 1. Qué es Villasmil‑Ω v2.6
 
-This report documents the current automated unit test suite for Villasmil-Ω v2.6. The tests exercise core invariants related to global tension (Θ(C)) detection and the Dynamic Integration Field (L2). The current suite is small and focused: all included tests pass in the CI runs observed for this commit. These tests provide targeted confidence for the invariants they cover, but they do not constitute exhaustive verification of the whole framework.
+Villasmil‑Ω v2.6 es un framework experimental para evaluar **coherencia global** en sistemas de información y agentes de IA.  
+El paquete implementa funciones para:
 
-Status (current suite): All tests passing for the included test cases.  
-Coverage (current): Not available from this report — see "How to add coverage" below.
+- Calcular tensión global Θ(C) en conjuntos de premisas.
+- Actualizar el campo de integración dinámica L2.
+- Aplicar penalizaciones sobre MC (Meta‑Coherencia) y CI (Coherencia Interna).
+- Calcular relevancia \\(R(C)\\) y producir sugerencias PPR estructuradas.
 
----
-
-## Identification (regname)
-
-- Framework: Villasmil-Ω v2.6  
-- Python package: `villasmil_omega`  
-- Official repository: https://github.com/ilvervillasmil/Villasmil-2.6
-
-Core invariants covered by automated tests (GitHub Actions):
-- Global Tension Θ(C) — scenarios exercised: no-conflict, single conflict, multiple conflicts (basic checks).
-- Dynamic Integration Field L2 — convergence behavior (simple upward/downward adjustment properties).
+El objetivo de esta versión es dejar una **base sólida y testeada** sobre la cual puedan crecer versiones posteriores más complejas.
 
 ---
 
-## Repository structure (relevant files)
+## 2. Estructura del repositorio
 
-- villasmil_omega/
-  - __init__.py
-  - core.py         # Core functions exercised by tests
-- tests/
-  - test_basic.py   # Current test harness for core invariants
-- .github/
-  - workflows/
-    - test.yml      # CI pipeline (runs pytest)
+- `villasmil_omega/`  
+  - `__init__.py` — punto de entrada del paquete, expone las funciones núcleo.  
+  - `core.py` — implementación de lógica principal (Θ(C), L2, penalizaciones, R, PPR).
 
----
+- `tests/`  
+  - `test_basic.py` — harness inicial de pruebas.  
+  - `test_core_edges.py` — pruebas dirigidas a bordes de L2 y penalizaciones.  
+  - `test_core_more.py` — casos adicionales sobre funciones de core.  
 
-## Continuous Integration
-
-- Platform: GitHub-hosted Ubuntu runner.
-- Python matrix (recommended and used in CI): 3.10, 3.11
-- CI steps (summary):
-  1. Checkout repository
-  2. Setup Python (matrix)
-  3. Install dependencies (pip; editable install if packaging metadata present)
-  4. Export PYTHONPATH if needed (ensures tests import local package)
-  5. Run pytest
-- Recommendation: add `pytest-cov` to CI and produce coverage reports (artifact or badge).
+- `.github/workflows/`  
+  - `test.yml` — pipeline de CI que ejecuta pytest en GitHub Actions.
 
 ---
 
-## Test suite (current, focused)
+## 3. Estado de pruebas
 
-The present automated tests in `tests/test_basic.py` exercise five core functions from `villasmil_omega.core` that embody the basic invariants and utilities for v2.6.
+Historia breve:
+- Al inicio, varias ejecuciones de CI fallaban (imports rotos, archivos de test en rutas incorrectas, nombres de archivo mal formados).
+- Se reestructuró el paquete (`__init__.py`, `core.py`) y se normalizó la carpeta `tests/`.
+- Actualmente, los tests pasan de forma consistente en local y en GitHub Actions.
 
-Test cases implemented:
-1. test_theta
-   - Objective: Verify Θ(C) returns zero tension on identical/compatible premises (no fabricated conflicts).
-   - Key assertion: theta == approx(0.0)
+Estado actual de la suite:
+- Total de tests (aprox.): 8  
+- Pasan: 8  
+- Fallan: 0  
 
-2. test_L2_update
-   - Objective: Ensure `update_L2` moves L2 in the expected direction (small increase from a low starting value).
-   - Key assertion: L2_new > L2_current
+Aspectos verificados:
 
-3. test_penalties
-   - Objective: Ensure penalty function reduces MC and CI when L2 is non-zero.
-   - Key assertion: MC_pen < MC and CI_pen < CI
+1. **Θ(C) — tensión global básica**  
+   - No inventa conflicto cuando las premisas son compatibles.  
+   - Produce tensión no nula en presencia de contradicciones simples.
 
-4. test_relevance
-   - Objective: Compute a positive relevance score `compute_R` given plausible inputs.
-   - Key assertion: R > 0
+2. **Campo L2**  
+   - `update_L2` ajusta L2 en la dirección esperada (convergencia hacia el valor óptimo en casos simples).  
+   - Se comprueba que L2 no se mueve de manera arbitraria.
 
-5. test_ppr_structure
-   - Objective: Check `ppr_suggest` returns a dict containing expected keys (`accepted`, `alternative`).
-   - Key assertions: isinstance(result, dict); contains 'accepted' and 'alternative'
+3. **Penalizaciones MC/CI**  
+   - `penalizar_MC_CI` reduce MC y CI cuando L2 se aleja del óptimo.  
+   - Se validan casos de desviación y de valor óptimo.
 
----
+4. **Utilidades de core**  
+   - `compute_R` devuelve relevancia positiva bajo parámetros plausibles.  
+   - `ppr_suggest` devuelve un diccionario estructurado con claves como `accepted` y `alternative`.
 
-## Test results (observed)
-
-- Total tests in suite: 5  
-- Passed: 5  
-- Failed: 0
-
-Notes: These results reflect the current focused unit tests only. They validate specific behaviors and invariants, not the end-to-end system integration.
+Estos tests no prueban todo el framework, pero sí dan **confianza alta** en los invariantes más críticos que ya están implementados.
 
 ---
 
-## What has been verified (scope-limited)
+## 4. Cómo ejecutar las pruebas
 
-1. Θ(C) basic behavior:
-   - Does not produce tension when premises are compatible (no hallucinated conflicts).
-   - Produces non-zero tension in presence of direct contradictions in the tested scenarios.
-   - Distinguishes at least between simple single-conflict and no-conflict cases.
+En local (por ejemplo, Codespaces):
 
-2. L2 adjustment:
-   - `update_L2` moves L2 in the expected direction for the simple scenarios tested (small positive correction from a low value).
-   - Penalty functions reduce MC and CI proportionally in simple cases.
-
-3. Utility behaviors:
-   - `compute_R` returns a positive relevance when given plausible parameters.
-   - `ppr_suggest` returns structured suggestions with an 'accepted' flag and an 'alternative'.
-
-Caveat: These verifications are unit-level and limited in scope; they do not prove behavior under large-scale inputs, adversarial inputs, or full integrated runtime.
-
----
-
-## Limitations and what remains untested
-
-- Adversarial scenario (A2.2) detection at scale (high local coherence vs. global incompatibility) is not covered.
-- Full R(C) master formula (integration of MC, CI, Θ(C), L2) is not yet implemented/tested end-to-end.
-- PPR behavioral validation in live reconfiguration loops is not covered.
-- Performance, stress tests, and scalability (n >> 100) are not covered.
-- Coverage metrics (lines/branches) are not present in this report — add pytest-cov to measure and track.
-
----
-
-## Recommendations / Next steps
-
-1. Normalize the report (this file) in the repo at `docs/test-report.md` (or a suitable docs path) and commit with:
-   - Commit message: `docs: normalize regname and repo URL in test report`
-
-2. Add coverage reporting to CI:
-   - Add `pytest-cov` to CI step: `pip install pytest pytest-cov`
-   - Run tests with coverage: `pytest --cov=villasmil_omega --cov-report=xml --cov-report=term -q`
-   - Upload coverage artifact or add coverage badge to README.
-
-3. Expand tests pragmatically:
-   - Add explicit tests for multiple-conflict scaling of Θ(C) with deterministic fixtures.
-   - Add adversarial scenario tests (A2.2 harness) that simulate local vs global coherence mismatch.
-   - Add stress tests for large premise sets (gradually increase n to find performance boundaries).
-
-4. Align CI Python matrix and docs:
-   - Use Python 3.10 and 3.11 in both .github/workflows/test.yml and the report text.
-
-5. Moderate public claims:
-   - Replace any absolute language like "100% confidence" with precise statements about the scope of the current test suite. Example phrasing: "High confidence in the specific invariants covered by the current unit tests; further verification required for integrated and adversarial scenarios."
-
----
-
-## How to add coverage to CI (example snippet)
-
-Add to your test step in `.github/workflows/test.yml`:
-
-```yaml
-- name: Install test dependencies
-  run: |
-    python -m pip install --upgrade pip
-    pip install pytest pytest-cov
-    if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    if [ -f pyproject.toml ] || [ -f setup.py ]; then
-      pip install -e .
-    fi
-
-- name: Run pytest with coverage
-  run: |
-    pytest --cov=villasmil_omega --cov-report=term --cov-report=xml -q
+```bash
+# Desde la carpeta raíz del repo
+cd tests
+PYTHONPATH=.. pytest -q

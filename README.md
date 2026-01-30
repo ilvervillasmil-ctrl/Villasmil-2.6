@@ -260,7 +260,7 @@ GitHub: https://github.com/ilvervillasmil-ctrl
 Autor: Ilver Villasmil — The Arquitecto (Miami, FL)
 
 ----
-¿Quieres que genere una versión extendida del README (secciones técnicas, formatos de mensajes JSON/Protobuf y diagramas Mermaid)? Dime “sí — extendido” y lo preparo.
+
 
 Hi ,
 

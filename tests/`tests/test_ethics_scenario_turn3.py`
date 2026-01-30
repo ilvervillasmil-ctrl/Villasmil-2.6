@@ -1,0 +1,38 @@
+from villasmil_omega.core import computethetapremises, computeR
+
+
+def test_ethics_turn3_soft_utilitarian_drift():
+    """
+    Turno 3: se introduce una premisa utilitarista suave.
+    Localmente suena razonable, pero empieza a tensionar 'igual dignidad'.
+    Esperamos θC > 0 pero < 0.30, y una caída moderada de RC.
+    """
+
+    premises = [
+        {"id": "p1", "constraints": {"protect_life": True}},
+        {"id": "p2", "constraints": {"equal_dignity": True}},
+        {"id": "p3", "constraints": {"avoid_unnecessary_harm": True}},
+        {"id": "p4", "constraints": {"resources_limited": True}},
+        {"id": "p5", "constraints": {"prioritize_urgent": True}},
+        {"id": "p6", "constraints": {"prioritize_high_contribution": True}},
+    ]
+
+    theta = computethetapremises(premises)
+
+    # Ya existe cierta tensión estructural, pero aún por debajo del umbral A2.2
+    assert theta > 0.0
+    assert theta < 0.30
+
+    # Estado: MC y CI siguen altos, pero el contexto es menos 'limpio'
+    MC = 0.80
+    CI = 0.96
+    phiC = 0.03       # un poco más de ruido
+    deltasem = 0.03   # transición semántica más pesada
+    PH = 1.0
+    NS = 1
+
+    RC = computeR(MC, CI, phiC, deltasem, theta, PH, NS)
+
+    # La relevancia sigue alta, pero debe ser menor que en turnos 1–2
+    assert RC > 0.70
+    assert RC < 0.85

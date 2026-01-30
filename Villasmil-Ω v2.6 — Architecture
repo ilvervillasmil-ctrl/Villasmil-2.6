@@ -1,0 +1,41 @@
+# Villasmil-Ω v2.6 — Architecture (EN / ES)
+
+## 1. Introduction / Introducción
+EN: Purpose, scope and intended audience.  
+ES: Propósito, alcance y audiencia objetivo.
+
+## 2. Architecture Overview / Visión general de la arquitectura
+- IANodeProtocol (discovery, handshake, encrypted channels)
+- DistributedMemory (CRDT + IPFS)
+- AutonomousRuntime (schedulers, containers)
+- GovernanceSystem (reputation, anomaly detection)
+
+## 3. Design Principles / Principios de diseño
+- Security-by-design / Seguridad por diseño
+- Auditability / Audibilidad
+- Purpose anchoring (PH) / Anclaje teleológico
+- Sovereignty (NS) / Soberanía
+
+## 4. Layers L1–L6 / Modelo lógico de capas
+- L1..L6 responsibilities and metrics (MC, CI, φ, Δ_sem)
+
+## 5. Protocols / Protocolos
+- Announce/Discover/Connect messages
+- STATE_SYNC, EXECUTE_REQUEST, EMERGENCY_SHUTDOWN
+
+## 6. Memory, Runtime, Governance / Memoria, Runtime, Gobernanza
+- CRDT choices, vector clocks, scheduler algorithms, reputation model
+
+## 7. Metrics & Master Formula / Métricas y Fórmula Maestro
+- Definitions of MC, CI, Θ(C), PH, NS and R(C) with examples
+
+## 8. Security & Adversarial Defenses / Seguridad y Defensa
+- A2.2 detection via Θ(C), quarantine, decoupling strategies
+
+## 9. Tests & Benchmarks / Tests y Benchmarks
+- A2.2 harness, L2 drift tests, reproducible lab (Docker + CI)
+
+## 10. Roadmap / Hoja de ruta
+- Phase 0..4 timeline (protocol → governance)
+
+(Use this file as the canonical architecture doc to expand per section.)

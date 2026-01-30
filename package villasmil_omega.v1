@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package villasmil_omega.v1;
+
+// ANNOUNCE message
+message Announce {
+  string node_id = 1;
+  string public_key = 2;
+  repeated string capabilities = 3;
+  string endpoint = 4;
+  int64 timestamp = 5;
+  string signature = 6;
+}
+
+// STATE_SYNC request/response
+message StateSync {
+  string node_id = 1;
+  bytes state_cid = 2;
+  int64 timestamp = 3;
+  string signature = 4;
+}
+
+// EXECUTE_REQUEST
+message ExecuteRequest {
+  string task_id = 1;
+  string image = 2;
+  string model = 3;
+  map<string,string> resources = 4;
+  int64 deadline_ts = 5;
+  string signature = 6;
+}

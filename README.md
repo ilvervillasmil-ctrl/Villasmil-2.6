@@ -37,7 +37,7 @@ The goal of this version is to provide a **clean, tested baseline** on top of wh
   - `test_core_more.py` — additional cases covering `core.py` functions.  
 
 - `.github/workflows/`  
-  - `test.yml` — CI pipeline running pytest on GitHub Actions.
+  - `python-tests.yml` — CI pipeline running pytest with coverage on GitHub Actions.
 
 ---
 
@@ -49,9 +49,10 @@ Short history:
 - The current state is stable: tests pass consistently both locally and in CI.
 
 Current suite:
-- Total tests (approx.): 8  
-- Passed: 8  
-- Failed: 0  
+- Total tests: 9
+- Passed: 9
+- Failed: 0
+- Coverage (villasmil_omega): 100 % of lines on GitHub Actions (pytest-cov).
 
 Verified aspects:
 
@@ -85,12 +86,6 @@ cd tests
 PYTHONPATH=.. pytest -q
 
 
-
-***
-
-### Versión en español (por si quieres README bilingüe o un `docs/README-es.md`)
-
-```markdown
 # Villasmil‑Ω v2.6 — Marco y Pruebas
 
 Paquete Python: `villasmil_omega`  
@@ -100,7 +95,7 @@ Repositorio: https://github.com/ilvervillasmil/Villasmil-2.6
 Estado actual:
 - Todas las pruebas automatizadas pasan tanto en local (Codespaces) como en GitHub Actions.
 - El paquete está estructurado como un módulo Python estándar (`villasmil_omega`) con pruebas en `tests/`.
-- La batería actual valida el comportamiento básico de la tensión global Θ(C), el campo de integración dinámica L2, las penalizaciones MC/CI y la estructura mínima de PPR.
+- La batería actual valida el comportamiento básico de la tensión global Θ(C), el Campo de Integración Dinámica L2, las penalizaciones MC/CI y la estructura mínima de PPR.
 
 ---
 
@@ -110,7 +105,7 @@ Villasmil‑Ω v2.6 es un framework experimental para evaluar la **coherencia gl
 El paquete implementa funciones para:
 
 - Calcular la tensión global Θ(C) sobre conjuntos de premisas.
-- Actualizar el campo de integración dinámica L2.
+- Actualizar el Campo de Integración Dinámica L2.
 - Aplicar penalizaciones sobre MC (Meta‑Coherencia) y CI (Coherencia Interna).
 - Calcular la relevancia \\(R(C)\\) y producir sugerencias PPR estructuradas.
 
@@ -130,7 +125,7 @@ El objetivo de esta versión es ofrecer una **base limpia y testeada** sobre la 
   - `test_core_more.py` — casos adicionales sobre las funciones de `core.py`.  
 
 - `.github/workflows/`  
-  - `test.yml` — pipeline de CI que ejecuta pytest en GitHub Actions.
+  - `python-tests.yml` — pipeline de CI que ejecuta pytest con cobertura en GitHub Actions.
 
 ---
 
@@ -142,9 +137,10 @@ Historia breve:
 - El estado actual es estable: las pruebas pasan de forma consistente en local y en CI.
 
 Batería actual:
-- Total de tests (aprox.): 8  
-- Pasan: 8  
+- Total de tests: 9  
+- Pasan: 9  
 - Fallan: 0  
+- Cobertura (villasmil_omega): 100 % de líneas en GitHub Actions (pytest-cov).
 
 Aspectos verificados:
 

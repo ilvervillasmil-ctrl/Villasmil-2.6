@@ -1,18 +1,30 @@
-git clone https://github.com/ilvervillasmil-ctrl/Villasmil-2.6.git
-cd Villasmil-2.6
-git checkout -b feature/ci-fix
+name: Python tests
 
-mkdir -p .github/workflows
-cat > .github/workflows/test.yml <<'YAML'
-# pega aquí exactamente el contenido del workflow que te pasé antes
-YAML
+on:
+  push:
+  pull_request:
 
-mkdir -p villasmil_omega
-cat > villasmil_omega/__init__.py <<'PY'
-# Package init for villasmil_omega
-__all__ = []
-PY
+jobs:
+  test:
+    runs-on: ubuntu-latest
 
-git add .
-git commit -m "CI: fix python matrix, skip editable install if no packaging metadata, add debug & PYTHONPATH"
-git push -u origin feature/ci-fix
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install pytest
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+
+      - name: Export PYTHONPATH (ensure tests find the package)
+        run: echo "PYTHONPATH=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
+
+      - name: Run tests
+        run: pytest -q
+

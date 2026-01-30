@@ -1,0 +1,8 @@
+# Villasmil-Ω v2.6 Requirements
+# Core has no external dependencies for basic run.
+# For advanced features (embeddings/IPFS) uncomment below:
+
+# numpy>=1.21.0
+# scipy>=1.7.0
+# ipfshttpclient>=0.8.0
+# sentence-transformers>=2.2.2

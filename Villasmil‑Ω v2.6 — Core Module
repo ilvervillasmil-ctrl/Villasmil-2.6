@@ -1,0 +1,47 @@
+# Villasmil‑Ω v2.6 — Core Module
+
+**Author:** Ilver Villasmil – The Arquitecto  
+**Version:** 2.6.0  
+**Date:** 2026-01-29  
+**License:** Apache‑2.0
+
+Resumen
+-------
+Villasmil‑Ω v2.6 es un prototipo de framework de coherencia distribuida. Este repositorio contiene:
+- Implementación núcleo (villasmil_omega/core.py)
+- Tests básicos y harness adversarial (A2.2)
+- Documentación arquitectónica mínima
+- Scripts ligeros para ejecución y despliegue
+
+Quick start (móvil / iSH)
+1. Clona (o usa el repo web):
+   `git clone https://github.com/ilvervillasmil-ctrl/Villasmil-2.6.git`
+2. En iSH (Alpine) instala si hace falta:
+   `apk add git python3 py3-pip`
+3. Ejecuta el runner:
+   `chmod +x run_villasmil.sh`
+   `./run_villasmil.sh`
+
+Estructura mínima
+- villasmil_omega/
+  - __init__.py
+  - core.py
+- tests/
+  - test_basic.py
+  - test_a2_2.py
+- docs/
+  - 02-architecture.md
+- tools/
+  - health_check.sh
+- .github/workflows/test.yml
+
+Objetivo
+--------
+Publicar el código y los tests para revisión y crear dos ramas en draft:
+- feature/test-harness (código + tests)
+- feature/docs-full (docs + schemas)
+
+Contacto
+-------
+Ilver Villasmil — The Arquitecto  
+GitHub: https://github.com/ilvervillasmil-ctrl/Villasmil-2.6

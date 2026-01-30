@@ -59,3 +59,6 @@ def test_penalizar_MC_CI_no_penalty_when_optimal():
     MC_pen, CI_pen = penalizar_MC_CI(MC=0.8, CI=0.6, L2=0.125, L2_opt=0.125)
     assert MC_pen == 0.8
     assert CI_pen == 0.6
+    if __name__ == "__main__":
+    run_core()
+

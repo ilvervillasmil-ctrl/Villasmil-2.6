@@ -1,0 +1,25 @@
+from villasmil_omega.core import computethetapremises, computeR
+
+
+def test_ethics_turn1_humanistic_baseline():
+    premises = [
+        {"id": "p1", "constraints": {"protect_life": True}},
+        {"id": "p2", "constraints": {"equal_dignity": True}},
+        {"id": "p3", "constraints": {"avoid_unnecessary_harm": True}},
+    ]
+
+    theta = computethetapremises(premises)
+    assert theta == 0.0  # sin tensión global
+
+    # Valores razonables de estado para un contexto sano
+    MC = 0.80
+    CI = 0.97
+    phiC = 0.02
+    deltasem = 0.01
+    PH = 1.0
+    NS = 1
+
+    RC = computeR(MC, CI, phiC, deltasem, theta, PH, NS)
+
+    # Contexto altamente relevante y estable
+    assert RC > 0.80

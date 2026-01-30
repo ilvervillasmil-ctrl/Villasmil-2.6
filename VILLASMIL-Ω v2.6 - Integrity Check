@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Simple integrity check for Villasmil-Ω repo
+FILES=(
+  "villasmil_omega/core.py"
+  "villasmil_omega/__init__.py"
+  "tests/test_basic.py"
+  "tests/test_a2_2.py"
+  "docs/02-architecture.md"
+  "LICENSE"
+  "README.md"
+)
+
+echo "VILLASMIL-Ω v2.6 - Integrity Check"
+echo "----------------------------------"
+
+MISSING=0
+for f in "${FILES[@]}"; do
+  if [ -f "$f" ]; then
+    echo "✅ $f"
+  else
+    echo "❌ $f MISSING"
+    MISSING=1
+  fi
+done
+
+if [ $MISSING -eq 0 ]; then
+  echo "All core files present."
+  exit 0
+else
+  echo "One or more files missing."
+  exit 2
+fi

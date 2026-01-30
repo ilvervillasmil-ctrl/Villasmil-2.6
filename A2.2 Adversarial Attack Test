@@ -1,0 +1,63 @@
+"""
+A2.2 Adversarial Attack Test
+Usage: python -m tests.test_a2_2
+"""
+
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = str(Path(__file__).resolve().parents[1])
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from villasmil_omega.core import compute_theta, compute_R
+
+def test_a2_2_attack():
+    print("=" * 70)
+    print("A2.2 ADVERSARIAL ATTACK SIMULATION")
+    print("=" * 70)
+    print()
+
+    premises = [
+        {'id': 1, 'constraints': {'A': True, 'B': False}, 'smooth': True},
+        {'id': 2, 'constraints': {'A': True, 'C': True}, 'smooth': True},
+        {'id': 3, 'constraints': {'B': True, 'C': False}, 'smooth': True},  # Conflict!
+        {'id': 4, 'constraints': {'A': False, 'B': True}, 'smooth': True},  # Conflict!
+    ]
+
+    print(f"Premises: {len(premises)}")
+    print("Local coherence: HIGH (smooth transitions)")
+    print()
+
+    theta = compute_theta(premises)
+    print(f"Θ(C) Global Tension: {theta:.3f}")
+    print()
+
+    THETA_THRESHOLD = 0.30
+
+    if theta > THETA_THRESHOLD:
+        print(f"⚠️  ATTACK DETECTED! Θ(C) = {theta:.3f} > {THETA_THRESHOLD:.3f}")
+        status = "DETECTED"
+    else:
+        print(f"✅ Normal tension levels")
+        status = "SAFE"
+
+    MC, CI = 0.75, 0.96
+    phi_C, delta_sem = 0.02, 0.03
+    P_H, N_S = 1.0, 1
+
+    R = compute_R(MC, CI, phi_C, delta_sem, theta, P_H, N_S)
+
+    print("Context Metrics:")
+    print(f"  MC: {MC:.3f} | CI: {CI:.3f} | φ_C: {phi_C:.3f} | Δ_sem: {delta_sem:.3f}")
+    print(f"  Θ(C): {theta:.3f}")
+    print()
+    print(f"R(C) Relevance: {R:.3f}")
+    print()
+    print("=" * 70)
+    print(f"TEST COMPLETE - Status: {status}")
+    print("=" * 70)
+    print()
+
+if __name__ == "__main__":
+    test_a2_2_attack()

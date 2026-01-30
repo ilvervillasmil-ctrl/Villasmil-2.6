@@ -15,6 +15,15 @@ def run_core():
 if __name__ == "__main__":
     run_core()
 def suma_omega(a, b):
+    def indice_mc(aciertos, errores):
+    """
+    Índice MC muy simple: aciertos / (aciertos + errores).
+    Devuelve un número entre 0 y 1.
+    """
+    total = aciertos + errores
+    if total == 0:
+        return 0.0
+    return aciertos / total
     """
     Suma básica de prueba para Villasmil-Ω.
     """

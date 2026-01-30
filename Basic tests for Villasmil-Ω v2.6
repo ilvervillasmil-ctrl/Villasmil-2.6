@@ -1,0 +1,134 @@
+"""
+Basic tests for Villasmil-Ω v2.6
+Author: Ilver Villasmil
+Note: tests are safe to run from project root using:
+    python -m tests.test_basic
+"""
+
+import sys
+from pathlib import Path
+
+# Ensure project root is in sys.path so imports work on mobile/desktop
+PROJECT_ROOT = str(Path(__file__).resolve().parents[1])
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from villasmil_omega.core import (
+    compute_theta,
+    update_L2,
+    apply_penalties,
+    compute_R,
+    ppr_suggest
+)
+
+def test_theta():
+    """Test Θ(C) calculation"""
+    print("\n--- Test Θ(C) Global Tension ---")
+
+    # Compatible premises
+    premises = [
+        {'id': 1, 'constraints': {'A': True}},
+        {'id': 2, 'constraints': {'A': True}}
+    ]
+
+    theta = compute_theta(premises)
+    print(f"Compatible premises: Θ(C) = {theta:.3f}")
+    assert theta == 0.0, "Should be 0 for compatible premises"
+
+    # Incompatible premises
+    premises = [
+        {'id': 1, 'constraints': {'A': True}},
+        {'id': 2, 'constraints': {'A': False}}
+    ]
+
+    theta = compute_theta(premises)
+    print(f"Incompatible premises: Θ(C) = {theta:.3f}")
+    assert theta > 0.0, "Should be > 0 for incompatible premises"
+
+    print("✅ Passed")
+
+def test_L2_update():
+    """Test dynamic L2 update"""
+    print("\n--- Test L2 Dynamic Update ---")
+
+    L2_current = 0.10
+    L2_new = update_L2(L2_current)
+
+    print(f"L2_current: {L2_current:.3f}")
+    print(f"L2_new: {L2_new:.3f}")
+
+    assert L2_new > L2_current, "L2 should increase toward optimal"
+
+    print("✅ Passed")
+
+def test_penalties():
+    """Test MC/CI penalties"""
+    print("\n--- Test MC/CI Penalties ---")
+
+    MC, CI = 0.75, 0.96
+    L2_current = 0.20  # Out of optimal range
+
+    MC_pen, CI_pen = apply_penalties(MC, CI, L2_current)
+
+    print(f"Original: MC={MC:.3f}, CI={CI:.3f}")
+    print(f"With L2={L2_current:.3f} (out of range):")
+    print(f"  MC_pen={MC_pen:.3f} (penalty applied)")
+    print(f"  CI_pen={CI_pen:.3f} (penalty applied)")
+
+    assert MC_pen < MC, "MC should be penalized"
+    assert CI_pen < CI, "CI should be penalized"
+
+    print("✅ Passed")
+
+def test_relevance():
+    """Test R(C) calculation"""
+    print("\n--- Test R(C) Relevance ---")
+
+    R = compute_R(
+        MC=0.75,
+        CI=0.96,
+        phi_C=0.02,
+        delta_sem=0.03,
+        theta_C=0.05,
+        P_H=1.0,
+        N_S=1
+    )
+
+    print(f"R(C) = {R:.3f}")
+    assert R > 0, "Relevance should be positive"
+
+    print("✅ Passed")
+
+def test_ppr():
+    """Test Proactive Refinement Protocol"""
+    print("\n--- Test PPR (Proactive Refinement) ---")
+
+    proposal = {'L2': 0.125, 'action': 'integrate'}
+    context = {'phi_C': 0.05}
+
+    result = ppr_suggest(proposal, context)
+
+    print(f"User proposal: L2={proposal['L2']:.3f}")
+    print(f"Context: φ_C={context['phi_C']:.3f}")
+    print(f"PPR suggests: L2={result['alternative']['L2']:.3f}")
+    print(f"Justification: {result['justification']}")
+
+    assert 'accepted' in result
+    assert 'alternative' in result
+    assert 'justification' in result
+
+    print("✅ Passed")
+
+if __name__ == "__main__":
+    print("=" * 70)
+    print("VILLASMIL-Ω v2.6 - BASIC TESTS")
+    print("Author: Ilver Villasmil – The Arquitecto")
+    print("=" * 70)
+
+    test_theta()
+    test_L2_update()
+    test_penalties()
+    test_relevance()
+    test_ppr()
+
+    print("\nALL TESTS PASSED ✅")

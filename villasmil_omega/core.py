@@ -66,4 +66,9 @@ def penalizar_MC_CI(MC, CI, L2, L2_opt=0.125, alpha=0.5, beta=0.5):
         MC_pen = MC * (1 - alpha * |L2 - L2_opt|)
         CI_pen = CI * (1 - beta  * |L2 - L2_opt|)
 
-    Devuelve (MC_pen, CI
+    Devuelve (MC_pen, CI_pen).
+    """
+    delta = abs(L2 - L2_opt)
+    factor_MC = 1.0 - alpha * delta
+    factor_CI = 1.0 - beta * delta
+    return MC * factor_MC, CI * factor_CI

@@ -53,3 +53,13 @@ def ppr_suggest(proposal: Dict, context: Dict) -> Dict:
         "reason": "lower L2 to improve acceptance"
     }
     return {"accepted": accepted, "alternative": alternative}
+    def run_core():
+    """
+    Entry point for basic tests.
+    It solo ejecuta el banner del módulo.
+    """
+    print(">>> Villasmil-Ω v2.6 – RUN")
+    print("Villasmil-Ω v2.6 Core Module")
+    print("Author: Ilver Villasmil – The Arquitecto")
+    print("Module loaded successfully ✓")
+

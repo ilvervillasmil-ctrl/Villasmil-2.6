@@ -26,3 +26,26 @@ def test_ppr_accepts_and_optimizes_high_noise():
 
     # 4) Mensaje de optimización, no corrección
     assert "Optimization" in result["note"] or "optimización" in result["note"]
+
+
+def test_ppr_improves_integration_when_noise_is_low():
+    """
+    Cuando φ(C) es bajo, PPR no castiga sino que ajusta L2 suavemente
+    para mejorar integración, sin entrar en bucles de corrección.
+    """
+
+    user_proposal = {"L2": 0.11}
+    context = {"phiC": 0.02}  # ruido bajo
+
+    result = ppr_suggest(user_proposal, context)
+
+    # Aceptación de la propuesta original
+    assert result["accepted"] == user_proposal
+
+    # Alternativa ligeramente ajustada hacia mejor integración
+    alt_L2 = result["alternative"]["L2"]
+    assert user_proposal["L2"] <= alt_L2 <= 0.15
+
+    # Justificación orientada a integración, no a castigo
+    just = result["justification"].lower()
+    assert "integr" in just  # integration / integración

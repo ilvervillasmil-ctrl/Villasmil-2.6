@@ -31,5 +31,16 @@ def indice_mc(aciertos, errores):
     return aciertos / total
 
 
+def indice_ci(aciertos, errores, ruido):
+    """
+    CI simple: 1 - errores / (aciertos + errores + ruido).
+    Si no hay datos (todo 0), devuelve 0.0.
+    """
+    total = aciertos + errores + ruido
+    if total == 0:
+        return 0.0
+    return 1.0 - (errores / total)
+
+
 if __name__ == "__main__":
     run_core()

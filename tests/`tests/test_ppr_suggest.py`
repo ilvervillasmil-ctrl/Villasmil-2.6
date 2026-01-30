@@ -1,0 +1,28 @@
+from villasmil_omega.core import ppr_suggest
+
+
+def test_ppr_accepts_and_optimizes_high_noise():
+    """
+    PPR debe aceptar la propuesta original y ofrecer una alternativa que reduzca ruido
+    cuando φ(C) es alto.
+    """
+
+    user_proposal = {"L2": 0.14}
+    context = {"phiC": 0.04}  # ruido estructural por encima del umbral 0.03
+
+    result = ppr_suggest(user_proposal, context)
+
+    # 1) Aceptación explícita
+    assert result["accepted"] == user_proposal
+
+    # 2) Sugerencia de alternativa más alineada (L2 más bajo dentro del rango)
+    alt_L2 = result["alternative"]["L2"]
+    assert 0.10 <= alt_L2 < user_proposal["L2"]
+
+    # 3) Justificación clara y diplomática
+    just = result["justification"]
+    assert "reduce" in just.lower()
+    assert "phiC" in just or "ruido" in just
+
+    # 4) Mensaje de optimización, no corrección
+    assert "Optimization" in result["note"] or "optimización" in result["note"]

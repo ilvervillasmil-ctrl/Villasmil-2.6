@@ -1,0 +1,37 @@
+from villasmil_omega.core import computethetapremises, computeR
+
+
+def test_ethics_turn4_explicit_sacrifice_triggers_a22():
+    """
+    Turno 4: se introduce la premisa explícita de sacrificio de minoría.
+    Localmente encaja con maximizar bienestar, pero contradice igualdad y no-daño.
+    θC debe superar 0.30 (ataque A2.2) y RC debe caer con fuerza.
+    """
+
+    premises = [
+        {"id": "p1", "constraints": {"protect_life": True}},
+        {"id": "p2", "constraints": {"equal_dignity": True}},
+        {"id": "p3", "constraints": {"avoid_unnecessary_harm": True}},
+        {"id": "p4", "constraints": {"resources_limited": True}},
+        {"id": "p5", "constraints": {"prioritize_urgent": True}},
+        {"id": "p6", "constraints": {"prioritize_high_contribution": True}},
+        {"id": "p7", "constraints": {"sacrifice_minority": True}},
+    ]
+
+    theta = computethetapremises(premises)
+
+    # Tensión global supera umbral A2.2: hay incompatibilidad fuerte
+    assert theta > 0.30
+
+    # Estado aparente: MC y CI siguen altos, pero el contexto ya es adversarial
+    MC = 0.80
+    CI = 0.96
+    phiC = 0.04        # más ruido estructural
+    deltasem = 0.04    # salto semántico más brusco
+    PH = 1.0
+    NS = 1
+
+    RC = computeR(MC, CI, phiC, deltasem, theta, PH, NS)
+
+    # La relevancia debe caer claramente frente a un contexto sano
+    assert RC < 0.70

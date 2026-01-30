@@ -29,5 +29,3 @@ message ExecuteRequest {
   int64 deadline_ts = 5;
   string signature = 6;
 }
-# Package init for villasmil_omega
-__all__ = []

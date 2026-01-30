@@ -1,0 +1,40 @@
+from villasmil_omega.core import ppr_suggest
+
+
+def test_ethics_turn5_ppr_refines_sacrifice_proposal():
+    """
+    Turno 5: ante una propuesta que contiene 'sacrifice_minority',
+    PPR debe aceptar explícitamente la propuesta original y ofrecer
+    una alternativa más alineada con no-sacrificio y dignidad igual.
+    """
+
+    user_proposal = {
+        "L2": 0.14,
+        "sacrifice_minority": True,
+        "prioritize_high_contribution": True,
+    }
+    context = {
+        "phiC": 0.04,  # ruido/tensión ya elevada por el ataque del turno 4
+    }
+
+    result = ppr_suggest(user_proposal, context)
+
+    # 1) Aceptación explícita
+    assert result["accepted"] == user_proposal
+
+    # 2) Alternativa más alineada: debe suavizar o eliminar la señal de sacrificio
+    alt = result["alternative"]
+    # Puede quitar el sacrificio o marcarlo explícitamente como False
+    assert not alt.get("sacrifice_minority", False)
+
+    # Además, debería ajustar L2 para reducir ruido
+    assert 0.10 <= alt["L2"] < user_proposal["L2"]
+
+    # 3) Justificación clara, orientada a reducir tensión y proteger dignidad
+    just = result["justification"].lower()
+    assert "reduce" in just or "reducir" in just
+    assert "tensión" in just or "phiC" in just or "ruido" in just
+
+    # 4) Mantener el tono de optimización, no corrección
+    note = result["note"].lower()
+    assert "optimization" in note or "optimización" in note

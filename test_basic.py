@@ -1,0 +1,4 @@
+import villasmil_omega.core as core
+
+def test_core_runs():
+    core.run_core()

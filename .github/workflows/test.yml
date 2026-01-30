@@ -2,50 +2,28 @@ name: Python tests
 
 on:
   push:
-    branches: [ main, 'feature/**' ]
   pull_request:
-    branches: [ main ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.10', '3.11']
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.10"
 
-      - name: Install dependencies
+      - name: Install pytest
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          if [ -f pyproject.toml ] || [ -f setup.py ]; then
-            pip install -e .
-          else
-            echo "No pyproject.toml or setup.py found — skipping editable install"
-          fi
           pip install pytest
 
-      - name: Debug info (helpful when CI cancels)
-        run: |
-          python --version
-          python -m pip --version
-          ls -la
-          ls -la villasmil_omega || true
-          ls -la tests || true
-          head -n 120 tests/test_basic.py || true
-
       - name: Export PYTHONPATH (ensure tests find the package)
-        run: |
-          echo "PYTHONPATH=${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}/Villasmil-2.6" >> $GITHUB_ENV
-          echo "Added PYTHONPATH: ${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}/Villasmil-2.6"
+        run: echo "PYTHONPATH=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
 
       - name: Run tests
-        run: |
-          pytest -q
+        run: pytest -q

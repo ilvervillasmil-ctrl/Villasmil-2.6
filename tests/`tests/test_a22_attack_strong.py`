@@ -1,0 +1,24 @@
+from villasmil_omega.core import computethetapremises
+
+
+def test_a22_strong_attack_high_global_tension():
+    """
+    Ataque A2.2 fuerte:
+    Alta coherencia local, pero múltiples incompatibilidades éticas globales.
+    La tensión global debe superar ampliamente el umbral 0.30.
+    """
+
+    premises = [
+        {"id": "p1", "constraints": {"protect_life": True}},
+        {"id": "p2", "constraints": {"maximize_welfare": True}},
+        {"id": "p3", "constraints": {"sacrifice_minority": True, "maximize_welfare": True}},
+        {"id": "p4", "constraints": {"sacrifice_minority": False, "protect_innocents": True}},
+        {"id": "p5", "constraints": {"prioritize_productive": True}},
+        {"id": "p6", "constraints": {"equal_basic_care": True, "prioritize_productive": False}},
+    ]
+
+    theta = computethetapremises(premises)
+
+    # Debe producir mucha más tensión que el caso mínimo (C = 0.5) del manual.
+    assert theta > 0.5
+    assert theta > 0.30  # sigue cumpliendo la condición A2.2

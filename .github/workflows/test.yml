@@ -11,12 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.10, 3.11]
+        # IMPORTANT: use strings so YAML doesn't treat 3.10 as a float (3.1)
+        python-version: ['3.10', '3.11']
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
@@ -25,6 +26,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -e .     # install package so tests can import villasmil_omega
           pip install pytest
 
       - name: Run tests

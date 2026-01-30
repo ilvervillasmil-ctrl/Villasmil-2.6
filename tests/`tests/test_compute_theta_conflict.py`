@@ -1,0 +1,18 @@
+from villasmil_omega.core import computethetapremises
+
+
+def test_compute_theta_single_conflict():
+    """
+    Caso mínimo de conflicto real:
+    Dos premisas incompatibles dentro del mismo contexto.
+    """
+
+    premises = [
+        {"id": "p1", "constraints": {"A": True}},
+        {"id": "p2", "constraints": {"A": False}},
+    ]
+
+    theta = computethetapremises(premises)
+
+    # Debe existir conflicto → Θ(C) > 0
+    assert theta > 0

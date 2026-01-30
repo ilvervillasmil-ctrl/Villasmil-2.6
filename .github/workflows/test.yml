@@ -34,6 +34,20 @@ jobs:
           fi
           pip install pytest
 
+      - name: Debug info (helpful when CI cancels)
+        run: |
+          echo "=== Python & pip versions ==="
+          python --version
+          python -m pip --version
+          echo "=== Repo root listing ==="
+          ls -la
+          echo "=== project dir listing (villasmil_omega) ==="
+          ls -la villasmil_omega || true
+          echo "=== tests listing ==="
+          ls -la tests || true
+          echo "=== show tests/test_basic.py head ==="
+          head -n 120 tests/test_basic.py || true
+
       - name: Run tests
         run: |
           pytest -q

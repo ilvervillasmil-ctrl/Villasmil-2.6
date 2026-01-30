@@ -1,0 +1,138 @@
+"""
+Villasmil-Ω v2.6 - Core Module
+Author: Ilver Villasmil – The Arquitecto
+Date: January 29, 2026
+License: Apache-2.0
+"""
+
+from typing import Dict, List, Any, Tuple
+
+def incompatibility_score(p_i: Dict[str, Any], p_j: Dict[str, Any]) -> float:
+    """
+    Calculate incompatibility between two premises.
+    Returns [0,1] where 0 = compatible, 1 = incompatible.
+    """
+    score = 0.0
+
+    # Structural contradictions in constraints
+    if isinstance(p_i.get('constraints'), dict) and isinstance(p_j.get('constraints'), dict):
+        keys = set(p_i['constraints'].keys()).intersection(set(p_j['constraints'].keys()))
+        for k in keys:
+            if p_i['constraints'].get(k) != p_j['constraints'].get(k):
+                score += 1.0
+
+    # Optional: penalty for explicit semantic disagreement tag
+    if p_i.get('semantic_disagree') and p_j.get('semantic_disagree'):
+        score += 0.5
+
+    return min(1.0, score)
+
+def compute_theta(premises: List[Dict[str, Any]]) -> float:
+    """
+    Compute Global Tension Θ(C)
+    Θ(C) = average of incompatibility scores among premise pairs
+    """
+    n = len(premises)
+    if n < 2:
+        return 0.0
+
+    total = 0.0
+    pairs = 0
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            total += incompatibility_score(premises[i], premises[j])
+            pairs += 1
+
+    return float(total / max(1, pairs))
+
+def update_L2(L2_current: float, L2_opt: float = 0.125, k: float = 0.25) -> float:
+    """
+    Dynamic L2 update
+    L2_new = L2_current + k * (L2_opt - L2_current)
+    """
+    return float(L2_current + k * (L2_opt - L2_current))
+
+def apply_penalties(MC: float, CI: float, L2_current: float,
+                    L2_opt: float = 0.125,
+                    alpha: float = 0.5,
+                    beta: float = 0.5) -> Tuple[float, float]:
+    """
+    Apply penalties if L2 out of range
+    MC_pen = MC * (1 - alpha * |L2 - L2_opt|)
+    CI_pen = CI * (1 - beta * |L2 - L2_opt|)
+    """
+    delta = abs(L2_current - L2_opt)
+    MC_pen = max(0.0, MC * (1.0 - alpha * delta))
+    CI_pen = max(0.0, CI * (1.0 - beta * delta))
+    return float(MC_pen), float(CI_pen)
+
+def compute_R(MC: float, CI: float, phi_C: float, delta_sem: float,
+              theta_C: float, P_H: float, N_S: int,
+              weights: Dict[str, float] = None) -> float:
+    """
+    Compute relevance R(C)
+    R(C) = w1*MC + w2*CI + w3*(1-φ_C) + w4*(1-Δ_sem) - w5*Θ + w6*P_H*N_S
+    """
+    if weights is None:
+        weights = {
+            'w1': 0.30,  # Metaconsciousness
+            'w2': 0.25,  # Integrated coherence
+            'w3': 0.20,  # Noise reduction
+            'w4': 0.10,  # Semantic continuity
+            'w5': 0.05,  # Tension penalty
+            'w6': 0.10   # Purpose × neutrality
+        }
+
+    R = (weights['w1'] * MC +
+         weights['w2'] * CI +
+         weights['w3'] * (1.0 - phi_C) +
+         weights['w4'] * (1.0 - delta_sem) -
+         weights['w5'] * theta_C +
+         weights['w6'] * P_H * float(N_S))
+
+    return float(R)
+
+def ppr_suggest(user_proposal: Dict[str, Any],
+                context: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Proactive Refinement Protocol (PPR)
+    - Accept user proposal explicitly
+    - Suggest better-aligned alternative
+    - Explain improvement
+    """
+    accepted = user_proposal.copy()
+    alternative = user_proposal.copy()
+
+    phi_C = float(context.get('phi_C', 0.02))
+    L2 = float(user_proposal.get('L2', 0.125))
+
+    if phi_C > 0.03:
+        alternative['L2'] = max(0.10, L2 - 0.02)
+        justification = f"Proposed L2={alternative['L2']:.3f} to reduce structural noise (φ_C={phi_C:.3f})."
+    else:
+        alternative['L2'] = min(0.15, L2 + 0.01)
+        justification = f"Proposed L2={alternative['L2']:.3f} to improve integration stability (φ_C={phi_C:.3f})."
+
+    return {
+        'accepted': accepted,
+        'alternative': alternative,
+        'justification': justification,
+        'note': 'Optimization, not correction'
+    }
+
+if __name__ == "__main__":
+    print("=" * 70)
+    print("VILLASMIL-Ω v2.6 - CORE MODULE")
+    print("Author: Ilver Villasmil – The Arquitecto")
+    print("=" * 70)
+    print()
+    print("Functions available:")
+    print("  • compute_theta() - Global tension detection")
+    print("  • update_L2() - Dynamic L2 control")
+    print("  • apply_penalties() - MC/CI penalization")
+    print("  • compute_R() - Relevance calculation")
+    print("  • ppr_suggest() - Proactive refinement")
+    print()
+    print("✅ Module loaded successfully")
+    print()

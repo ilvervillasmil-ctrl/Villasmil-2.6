@@ -14,9 +14,7 @@ def suma_omega(a: float, b: float) -> float:
 
 def indice_mc(mc_values: List[float]) -> float:
     """
-    Índice simple de MC:
-    - Recibe una lista de valores MC en [0,1].
-    - Devuelve el promedio (también en [0,1]).
+    Índice simple de MC: promedio de valores en [0,1].
     """
     if not mc_values:
         return 0.0
@@ -26,13 +24,24 @@ def indice_mc(mc_values: List[float]) -> float:
 
 def indice_ci(ci_values: List[float]) -> float:
     """
-    Índice simple de CI:
-    - Misma idea que indice_mc, pero para CI.
+    Índice simple de CI: promedio de valores en [0,1].
     """
     if not ci_values:
         return 0.0
     s = sum(float(x) for x in ci_values)
     return float(s / len(ci_values))
+
+
+def actualizar_L2(L2_actual: float, delta: float, minimo: float = 0.0, maximo: float = 1.0) -> float:
+    """
+    Actualiza L2 con un delta y lo mantiene en [minimo, maximo].
+    """
+    nuevo = float(L2_actual) + float(delta)
+    if nuevo < minimo:
+        nuevo = minimo
+    if nuevo > maximo:
+        nuevo = maximo
+    return nuevo
 
 
 def compute_theta(cluster: List[Dict[str, Any]]) -> float:

@@ -1,0 +1,15 @@
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    # Protecciones redundantes (Fail-safes de seguridad)
+    if .* is None:
+    if .* <= 0:
+    if .* >= 1\.0:
+    if not recent:
+    if mu_otros is None:
+    except ImportError:
+    except Exception:

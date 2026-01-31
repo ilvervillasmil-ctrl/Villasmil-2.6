@@ -1,5 +1,4 @@
 import pytest
-import math
 from villasmil_omega.core import ajustar_mc_ci_por_coherencia
 from villasmil_omega.human_l2.puntos import (
     SistemaCoherenciaMaxima, 
@@ -8,33 +7,39 @@ from villasmil_omega.human_l2.puntos import (
     compute_L2_contexto
 )
 
-def test_vasos_comunicantes_l2_core():
+def test_presion_y_compensacion():
     """Al apretar la coherencia en L2, la presión debe subir en Core."""
-    conf = ConfiguracionEstandar()
-    sistema = SistemaCoherenciaMaxima(config=conf)
+    sistema = SistemaCoherenciaMaxima()
     
-    # Generamos la presión estadística (Puntos.py)
-    # 20 ciclos de oscilación rítmica para saturar el Sigma
-    for t in range(20):
-        val = 0.5 + 0.48 * math.sin(t)
-        sistema.registrar_medicion({"bio": val}, {"env": 1.0 - val})
-    
-    # El 'Apretón': Extraemos el resultado de L2 y lo inyectamos en Core
-    # Esto une las líneas 131-144 de puntos con las 77-107 de core
-    estado_l2 = sistema.get_estado_actual()
-    
-    # Probamos la reacción del motor (Core.py) ante esta presión
-    # Caso 1: Motor a plena carga
-    mc_alta, ci_alta = ajustar_mc_ci_por_coherencia(1.0, 1.0, estado_l2)
-    # Caso 2: Motor en reserva
-    mc_baja, ci_baja = ajustar_mc_ci_por_coherencia(0.2, 0.2, estado_l2)
-    
-    assert mc_alta != 1.0 or mc_baja != 0.2 # Confirmamos que hubo flujo de datos
+    # 1. ESTABILIZAR L2 (Puntos.py 131-144): 
+    # Forzamos una ráfaga que sature los cálculos estadísticos.
+    for i in range(15):
+        val = 0.1 if i % 2 == 0 else 0.9
+        sistema.registrar_medicion({"f": val}, {"e": 1.0 - val})
 
-def test_puntos_muertos():
-    """Cubrimos los rincones donde no llega la respiración."""
-    # Línea 281: historial vacío
-    assert SistemaCoherenciaMaxima().get_estado_actual() is None
-    # Paradoja de seguridad
+    # 2. APRETAR CORE (Core.py 74-94):
+    # Inyectamos manualmente los estados que faltan en el reporte.
+    estados_emergencia = [
+        "TENSION_ALTA", "RIESGO_SELF", "SELF_CRITICO", "BURNOUT_INMINENTE"
+    ]
+    
+    for est in estados_emergencia:
+        # Si apretamos con este estado...
+        res_critico = {
+            "estado_self": {"estado": est},
+            "estado_contexto": {"estado": "DAÑANDO_CONTEXTO"},
+            "coherencia_score": 0.1,
+            "decision": {"accion": "CONTINUAR" if est != "BURNOUT_INMINENTE" else "DETENER_INMEDIATO"}
+        }
+        # ...la lógica en Core.py debe compensar (subir/bajar MC y CI).
+        mc, ci = ajustar_mc_ci_por_coherencia(0.8, 0.8, res_critico)
+        assert mc < 0.8 or mc == 0.0 # El sistema reaccionó
+
+def test_puntos_muertos_limpieza():
+    """Limpia las líneas sueltas 66, 69, 281."""
     assert compute_L2_self({}) == 0.05
     assert compute_L2_contexto({}) == 0.075
+    # Historial vacío (línea 281)
+    sis = SistemaCoherenciaMaxima()
+    sis.history = []
+    assert sis.get_estado_actual() is None

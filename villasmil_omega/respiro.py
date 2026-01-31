@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from typing import Dict, Tuple
 import math
 import time
+# Esta es la conexión clave:
+from villasmil_omega.cierre.invariancia import Invariancia
 
 @dataclass
 class RespiroConfig:
@@ -32,37 +34,35 @@ class RespiroState:
         return interv_per_hour, frac_deadband
 
 def distribute_action(base_effort: float, sensitivities: Dict[str, float], cfg: RespiroConfig) -> Dict[str, float]:
-    """L1: Reparte el esfuerzo sin que ninguna capa se rompa."""
     base_effort = max(0.0, min(base_effort, cfg.max_total_effort))
     s_sum = sum(max(0.0, v) for v in sensitivities.values())
     if s_sum <= 0.0: return {k: 0.0 for k in sensitivities}
     weights = {k: max(0.0, v) / s_sum for k, v in sensitivities.items()}
     return {k: max(cfg.min_component, min(base_effort * w, cfg.max_component)) for k, w in weights.items()}
 
-@dataclass
-class SimulatedOutcome:
-    R_final: float
-    cost: float
-
-def simulate_apply(current_R: float, effort: Dict[str, float]) -> SimulatedOutcome:
-    total_effort = sum(effort.values())
-    return SimulatedOutcome(R_final=current_R + (0.2 * (1.0 - math.exp(-total_effort))), cost=total_effort ** 2)
-
 def should_apply(current_R: float, effort_soft: Dict[str, float], effort_hard: Dict[str, float], cost_threshold: float) -> Tuple[bool, float]:
-    soft = simulate_apply(current_R, effort_soft)
-    hard = simulate_apply(current_R, effort_hard)
-    marginal_gain = hard.R_final - soft.R_final
-    return (soft.cost <= cost_threshold and marginal_gain < 0.02, marginal_gain)
+    total_soft = sum(effort_soft.values())
+    total_hard = sum(effort_hard.values())
+    
+    # Ganancia marginal
+    r_soft = current_R + (0.2 * (1.0 - math.exp(-total_soft)))
+    r_hard = current_R + (0.2 * (1.0 - math.exp(-total_hard)))
+    marginal_gain = r_hard - r_soft
+    
+    # "Podría seguir... pero no vale la pena" (Líneas 39-40)
+    cost_soft = total_soft ** 2
+    if cost_soft > cost_threshold or marginal_gain < 0.02:
+        return True, marginal_gain
+    return False, marginal_gain
 
 def detect_respiro(state: RespiroState, cfg: RespiroConfig, marginal_gain_probe: float) -> bool:
     interv_per_hour, frac_deadband = state.metrics()
     return (interv_per_hour < cfg.interv_threshold_per_hour and 
             frac_deadband >= cfg.min_deadband_fraction and 
             marginal_gain_probe < cfg.marginal_gain_epsilon)
-from villasmil_omega.cierre.invariancia import Invariancia
 
-# Dentro de detect_respiro o como extensión:
-def es_momento_de_cerrar(historial_R: list) -> bool:
+# --- EL PUENTE HACIA EL CIERRE ---
+def evaluar_paz_sistematica(historial_R: list) -> bool:
+    """Consulta al módulo de cierre si el sistema ya llegó a la invarianza."""
     detector = Invariancia(epsilon=1e-3, ventana=5)
     return detector.es_invariante(historial_R)
-

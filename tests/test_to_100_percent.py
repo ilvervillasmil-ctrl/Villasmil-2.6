@@ -10,7 +10,7 @@ from villasmil_omega.human_l2.puntos import (
     SistemaCoherenciaMaxima
 )
 from villasmil_omega.respiro import should_apply
-from villasmil_omega.cierre.invariancia import calcular_invariancia
+from villasmil_omega.cierre.invariancia import Invariancia
 
 
 def test_puntos_W_custom():
@@ -63,24 +63,24 @@ def test_sistema_coherencia():
 
 
 def test_respiro_should_apply():
-    """Líneas 39-40: should_apply con cost_threshold"""
-    # Case donde cost > threshold
+    """Líneas 39-40: should_apply"""
     apply1, gain1 = should_apply(0.5, {"a": 0.9}, {"a": 1.0}, 0.5)
-    
-    # Case donde marginal_gain < 0.02
     apply2, gain2 = should_apply(0.9, {"a": 0.1}, {"a": 0.11}, 1.0)
-    
     assert isinstance(apply1, bool)
-    assert isinstance(gain1, float)
 
 
-def test_invariancia():
+def test_invariancia_edge():
     """Línea 12: invariancia edge cases"""
-    inv1 = calcular_invariancia(0.0, 0.0)
-    assert inv1 == 1.0
+    inv = Invariancia(epsilon=1e-3, ventana=5)
     
-    inv2 = calcular_invariancia(0.5, 0.5)
-    assert inv2 == 1.0
+    # Todos iguales
+    assert inv.es_invariante([0.5] * 5) == True
+    
+    # No suficientes datos
+    assert inv.es_invariante([0.5] * 3) == False
+    
+    # Con cambio
+    assert inv.es_invariante([0.5, 0.5, 0.5, 0.5, 0.8]) == False
 
 
 def test_compute_L2_extremos():

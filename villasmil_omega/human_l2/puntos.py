@@ -210,3 +210,93 @@ class PuntoNeutroContexto:
         else:
             return (f"CONTEXTO: L₂={L2:.2f} ≈ μ={mu:.2f}. "
                     f"Situación estable.")
+# ============================================================
+# SISTEMA DE COHERENCIA MÁXIMA
+# ============================================================
+
+@dataclass
+class SistemaCoherenciaMaxima:
+    """
+    Sistema de Coherencia Máxima L2_self / L2_contexto.
+
+    Mantiene el histórico básico y expone una API simple:
+    - registrar_medicion(...)
+    - get_estado_actual()
+    """
+    config: ConfiguracionEstandar = CONF
+    mu_self: Optional[float] = None
+    MAD_self: float = 0.0
+    contexto: PuntoNeutroContexto = field(default_factory=PuntoNeutroContexto)
+    history: List[Dict[str, Any]] = field(default_factory=list)
+
+    def registrar_medicion(
+        self,
+        señales_internas: Dict[str, float],
+        señales_relacionales: Dict[str, float],
+        timestamp: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """Actualiza L2_self y L2_contexto y devuelve un dict con el estado."""
+        ts = timestamp if timestamp is not None else time.time()
+
+        L2_s = compute_L2_self(señales_internas, self.config)
+        L2_c = compute_L2_contexto(señales_relacionales, self.config)
+
+        # Inicialización de μ_self
+        if self.mu_self is None:
+            self.mu_self = L2_s
+            self.MAD_self = 0.0
+            estado_self = "BASELINE_INICIAL"
+            accion_self = "Observar - estableciendo baseline"
+            deadband_self = self.config.DELTA_ABS_SELF
+            desviacion_self = 0.0
+            sigma_self = 0.0
+        else:
+            # EWMA para μ_self
+            self.mu_self = (
+                self.config.ALPHA_SELF * L2_s
+                + (1.0 - self.config.ALPHA_SELF) * self.mu_self
+            )
+            desviacion_self = L2_s - self.mu_self
+            self.MAD_self = update_mad(self.MAD_self, desviacion_self)
+            sigma_self = mad_to_sigma(self.MAD_self)
+            deadband_self = max(self.config.DELTA_ABS_SELF,
+                                self.config.K_SELF * sigma_self)
+
+            if L2_s > self.mu_self + deadband_self:
+                estado_self = "RIESGO_SELF"
+                accion_self = "Reduce carga / descansa"
+            elif L2_s < self.mu_self - deadband_self:
+                estado_self = "SELF_RECUPERADO"
+                accion_self = "Puedes asumir algo más"
+            else:
+                estado_self = "SELF_ESTABLE"
+                accion_self = "Mantén el ritmo"
+
+        # Actualizar contexto
+        resultado_ctx = self.contexto.update(L2_c, timestamp=ts)
+
+        resultado = {
+            "timestamp": ts,
+            "L2_self": L2_s,
+            "L2_contexto": L2_c,
+            "mu_self": self.mu_self,
+            "sigma_self": sigma_self,
+            "deadband_self": deadband_self,
+            "desviacion_self": desviacion_self,
+            "estado_self": estado_self,
+            "accion_self": accion_self,
+            "estado_contexto": resultado_ctx["estado"],
+            "accion_contexto": resultado_ctx["accion"],
+            "mu_contexto": resultado_ctx["mu"],
+            "sigma_contexto": resultado_ctx["sigma"],
+            "deadband_contexto": resultado_ctx["deadband"],
+        }
+
+        self.history.append(resultado)
+        return resultado
+
+    def get_estado_actual(self) -> Optional[Dict[str, Any]]:
+        """Devuelve el último estado registrado o None si no hay datos."""
+        if not self.history:
+            return None
+        return self.history[-1]

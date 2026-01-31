@@ -2,7 +2,7 @@
 """Tests quirúrgicos para llegar exactamente al 100%"""
 
 import pytest
-from villasmil_omega.l2_model import L2HumanModel
+from villasmil_omega.l2_model import HumanL2Model
 from villasmil_omega.core import theta_C, compute_phi_C
 from villasmil_omega.human_l2.puntos import (
     ConfiguracionEstandar, compute_L2_contexto, compute_L2_self,
@@ -18,7 +18,7 @@ from villasmil_omega.cierre.invariancia import calcular_invariancia
 
 def test_l2model_linea_42_44_MC_prev_None():
     """Líneas 42, 44: _compute_MC cuando MC_prev es None"""
-    model = L2HumanModel()
+    model = HumanL2Model()
     # Primera llamada con MC_prev=None
     mc = model._compute_MC(phi_C=0.5, MC_prev=None)
     assert 0 <= mc <= 1
@@ -26,7 +26,7 @@ def test_l2model_linea_42_44_MC_prev_None():
 
 def test_l2model_linea_52_53_CI_diferentes_valores():
     """Líneas 52-53: _compute_CI con diferentes relaciones phi_C vs MC"""
-    model = L2HumanModel()
+    model = HumanL2Model()
     # phi_C > MC
     ci1 = model._compute_CI(phi_C=0.8, MC=0.3)
     # phi_C < MC
@@ -38,7 +38,7 @@ def test_l2model_linea_52_53_CI_diferentes_valores():
 
 def test_l2model_linea_89_clamp_fuera_rango():
     """Línea 89: update() con valor que requiere clamp"""
-    model = L2HumanModel()
+    model = HumanL2Model()
     # Valores fuera de rango [0,1] para forzar clamp
     model.update(contexto=1.5)  # > 1
     model.update(contexto=-0.5)  # < 0
@@ -47,7 +47,7 @@ def test_l2model_linea_89_clamp_fuera_rango():
 
 def test_l2model_lineas_103_107_reset():
     """Líneas 103-107: reset() completo"""
-    model = L2HumanModel()
+    model = HumanL2Model()
     # Hacer varias actualizaciones
     for i in range(5):
         model.update(contexto=0.5 + i*0.1)
@@ -246,7 +246,7 @@ def test_invariancia_linea_12_caso_zero():
 
 def test_integracion_completa_todas_lineas():
     """Test de integración que toca todas las líneas faltantes"""
-    model = L2HumanModel()
+    model = HumanL2Model()
     
     # Ciclo completo con valores extremos
     valores_extremos = [0.0, 0.5, 1.0, 1.5, -0.5]

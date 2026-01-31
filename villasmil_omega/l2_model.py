@@ -28,6 +28,22 @@ def ajustar_L2(L2_base, ruido=0.0):
     return L2
 
 
+def apply_bio_adjustment(L2, bio_factor=1.0):
+    """
+    Ajusta L2 por un factor biológico simple:
+
+        L2_bio = L2 * bio_factor
+
+    y lo acota a [0, 1].
+    """
+    L2_bio = L2 * bio_factor
+    if L2_bio < 0.0:
+        L2_bio = 0.0
+    if L2_bio > 1.0:
+        L2_bio = 1.0
+    return L2_bio
+
+
 def compute_theta(L2, sigma=1.0):
     """
     Calcula θ(L2) = exp(−(L2 − 0.125)^2 / (2 * sigma^2)).

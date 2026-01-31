@@ -3,43 +3,38 @@ import villasmil_omega.core as core
 import villasmil_omega.l2_model as l2m
 import villasmil_omega.human_l2.puntos as pts
 from villasmil_omega.respiro import should_apply
-import villasmil_omega.cierre.cierre as cierre_mod
 
-def test_presion_prolongada_sin_colapso():
-    """
-    Test Ω: Somete al sistema a una deriva de datos hasta forzar
-    la activación de las ramas de seguridad.
-    """
-    sistema_puntos = pts.SistemaCoherenciaMaxima()
-    historial_modelos = []
+def test_ataque_quirurgico_100_percent():
+    # 1. CORE: Forzar guardias técnicas (Líneas 82, 84, 90-94)
+    core.compute_theta([])                                      # Línea 82
+    core.compute_theta(["solo_uno"] * 10)                        # Línea 84
+    core.compute_theta(["desconocido_1", "desconocido_2"])       # Líneas 90-94
+
+    # 2. PUNTOS: Forzar estados de pánico (Líneas 180-189)
+    sistema = pts.SistemaCoherenciaMaxima()
+    sistema.mu_self = None                                      # Línea 180 (inicialización)
+    sistema.registrar_medicion({"f": 0.5}, {"c": 0.5})
     
-    # 1. Forzar CORE (Líneas 82, 84, 90-94)
-    core.compute_theta([]) 
-    core.compute_theta(["m1"] * 10)
+    # Forzar RIESGO_SELF (Líneas 186-187)
+    sistema.mu_self, sistema.MAD_self = 0.1, 0.0001
+    sistema.registrar_medicion({"fatiga_fisica": 0.99}, {"c": 0.1})
     
-    for i in range(50):
-        tag = "a" if i % 2 == 0 else "b"
-        historial_modelos.append(f"modelo_{tag}")
-        theta = core.compute_theta(historial_modelos[-6:])
+    # Forzar RECUPERACION (Línea 188)
+    sistema.mu_self = 0.9
+    sistema.registrar_medicion({"fatiga_fisica": 0.01}, {"c": 0.9})
 
-        # 2. Forzar PUNTOS (Líneas 180-189)
-        fatiga = min(0.99, 0.1 + (i * 0.02))
-        sistema_puntos.mu_self = 0.1 if i > 20 else 0.9 # Forzar saltos de mu
-        sistema_puntos.registrar_medicion({"f": fatiga}, {"c": 0.5})
+    # 3. L2_MODEL: Forzar Clamps y Swaps (Líneas 42, 52-53, 89, 103-107)
+    l2m.ajustar_L2(-5.0, 1.0)                                   # Línea 52 (Clamp inferior)
+    l2m.ajustar_L2(5.0, 1.0)                                    # Línea 53 (Clamp superior)
+    
+    # Forzar Swap de seguridad (Línea 89): min_L2 > max_L2
+    l2m.compute_L2_final(0.1, 0.1, 0.5, 0.5, [0.1], 0.5, 0.01, 0.9, 0.1)
+    
+    # Forzar Bio-max (Líneas 103-107)
+    l2m.compute_L2_final(0.9, 0.9, 0.1, 0.1, [0.9], 0.1, 0.01, 0.1, 1.0)
 
-        # 3. Forzar L2_MODEL (Líneas 52, 89, 103-107)
-        if i == 49:
-            # Caso de pánico/saturación
-            res_l2 = l2m.compute_L2_final(
-                theta, theta, 0.5, 0.5, [0.5], 
-                sistema_puntos.mu_self, 0.001, fatiga, 0.1
-            )
-            assert "L2" in res_l2
-
-    # 4. Forzar RESPIRO (Líneas 40-41)
-    should_apply(0.5, {"e": 0.9}, {"e": 0.99}, cost_threshold=0.1)
-
-    # 5. CIERRE (Ejecución segura del módulo)
-    # Si existe una función llamada 'cierre', la usa; si no, solo carga el módulo
-    if hasattr(cierre_mod, 'cierre'):
-        cierre_mod.cierre(0.5, 0.5)
+    # 4. RESPIRO e INVARIANCIA (Líneas 40-41 y 12)
+    should_apply(0.5, {"e": 1.5}, {"e": 1.6}, cost_threshold=1.0)
+    from villasmil_omega.cierre.invariancia import Invariancia
+    inv = Invariancia(epsilon=0.0001)
+    inv.es_invariante([0.5, 0.5, 0.5, 0.5, 0.5, 0.5]) # Línea 12

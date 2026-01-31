@@ -1,14 +1,23 @@
+✅ VEO EL PROBLEMA - SOLO EXISTEN 2 CLASES
+En puntos.py solo existen:
+	∙	ConfiguracionEstandar
+	∙	PuntoNeutroContexto
+	∙	SistemaCoherenciaMaxima
+NO existen:
+	∙	PuntoEquilibrioSelfDinamico
+	∙	ProtocoloPrioridad
+TEST CORRECTO - SOLO LO QUE EXISTE:
+
 # tests/test_to_100_percent.py
-"""Tests para llegar al 100% - solo puntos.py"""
+"""Tests para cubrir líneas faltantes en puntos.py"""
 
 import pytest
 from villasmil_omega.human_l2.puntos import (
-    ConfiguracionEstandar, 
-    compute_L2_contexto, 
+    ConfiguracionEstandar,
+    compute_L2_contexto,
     compute_L2_self,
-    PuntoEquilibrioSelfDinamico, 
     PuntoNeutroContexto,
-    ProtocoloPrioridad
+    SistemaCoherenciaMaxima
 )
 from villasmil_omega.respiro import RespiroOmega
 from villasmil_omega.cierre.invariancia import calcular_invariancia
@@ -39,74 +48,56 @@ def test_puntos_W_custom():
     assert 0 <= L2_slf <= 1
 
 
-def test_puntos_recalcular_mu_todas_ramas():
-    """Líneas 180-189: _recalcular_mu_dinamico todas las fases"""
-    eq = PuntoEquilibrioSelfDinamico(baseline_personal=0.40)
-    
-    # Acumular historia
-    eq.history_L2 = [0.5] * 75
-    
-    # Sprint
-    eq.set_estado("sprint", urgencia=0.9, contexto_demanda=0.8, fase="sprint")
-    
-    # Deuda alta
-    eq.history_L2 = [0.65] * 75
-    eq.set_estado("sprint2", urgencia=0.9, contexto_demanda=0.8, fase="sprint")
-    
-    # Recuperado
-    eq.history_L2 = [0.25] * 75
-    eq.set_estado("sprint3", urgencia=0.9, contexto_demanda=0.8, fase="sprint")
-    
-    # Recuperación
-    eq.set_estado("recup", urgencia=0.1, contexto_demanda=0.2, fase="recuperacion")
-    
-    # Demanda alta
-    eq.set_estado("alta", urgencia=0.5, contexto_demanda=0.85, fase="normal")
-    
-    # Demanda baja
-    eq.set_estado("baja", urgencia=0.5, contexto_demanda=0.15, fase="normal")
-    
-    assert 0.1 <= eq.mu_self <= 0.8
-
-
-def test_puntos_protocolo_seguridad():
-    """Líneas 246-247: Protocolo con/sin seguridad"""
-    # Con seguridad
-    d1 = ProtocoloPrioridad.evaluar(0.50, 0.90, dominio_seguridad=True)
-    assert d1["prioridad"] == 1
-    assert d1["accion"] == "DETENER_INMEDIATO"
-    
-    # Sin seguridad
-    d2 = ProtocoloPrioridad.evaluar(0.50, 0.90, dominio_seguridad=False)
-    assert d2["prioridad"] != 1
-
-
 def test_punto_neutro_inicializacion():
-    """Líneas 131-144: PuntoNeutro inicialización"""
+    """PuntoNeutro inicialización y update"""
     punto = PuntoNeutroContexto()
-    resultado = punto.update(0.5)
-    assert resultado["estado"] == "BASELINE_INICIAL"
+    
+    # Primera medición
+    r1 = punto.update(0.5)
+    assert r1["estado"] == "BASELINE_INICIAL"
     assert punto.mu_otros == 0.5
+    
+    # Segunda medición
+    r2 = punto.update(0.6)
+    assert punto.mu_otros is not None
 
 
-def test_equilibrio_update_estados():
-    """Líneas 227-233: Update con diferentes estados"""
-    eq = PuntoEquilibrioSelfDinamico()
+def test_sistema_coherencia_maxima():
+    """Sistema completo con registrar_medicion"""
+    sistema = SistemaCoherenciaMaxima(
+        baseline_personal=0.4,
+        baseline_contexto=0.3,
+        enable_logging=False
+    )
     
-    # Burnout
-    r1 = eq.update(0.80)
-    assert "BURNOUT" in r1["estado"] or "CRITICO" in r1["estado"]
+    # Registrar varias mediciones
+    for i in range(5):
+        resultado = sistema.registrar_medicion(
+            señales_internas={
+                "fatiga_fisica": 0.3 + i*0.1,
+                "carga_cognitiva": 0.4,
+                "tension_emocional": 0.3,
+                "señales_somaticas": 0.2,
+                "motivacion_intrinseca": 0.7,
+            },
+            señales_relacionales={
+                "feedback_directo": 0.2,
+                "distancia_relacional": 0.3,
+                "tension_observada": 0.2,
+                "confianza_reportada": 0.8,
+                "impacto_colaborativo": 0.1,
+            }
+        )
+        
+        assert 0 <= resultado["L2_self"] <= 1
+        assert 0 <= resultado["L2_contexto"] <= 1
+        assert "estado_self" in resultado
+        assert "estado_contexto" in resultado
     
-    # Crítico
-    r2 = eq.update(0.72)
-    assert "CRITICO" in r2["estado"] or "TENSION" in r2["estado"]
-    
-    # Medio
-    r3 = eq.update(0.50)
-    
-    # Bajo
-    r4 = eq.update(0.20)
-    assert "RECUPERADO" in r4["estado"] or "EQUILIBRIO" in r4["estado"]
+    # Verificar get_estado_actual
+    estado = sistema.get_estado_actual()
+    assert estado is not None
+    assert "L2_self" in estado
 
 
 def test_respiro_custom():
@@ -133,3 +124,36 @@ def test_invariancia_edge():
     
     inv3 = calcular_invariancia(0.0, 1.0)
     assert 0 <= inv3 <= 1
+
+
+def test_compute_L2_valores_extremos():
+    """Probar compute_L2 con valores extremos"""
+    # Todos ceros
+    L2_s1 = compute_L2_self({})
+    assert 0 <= L2_s1 <= 1
+    
+    # Todos máximos
+    L2_s2 = compute_L2_self({
+        "fatiga_fisica": 1.0,
+        "carga_cognitiva": 1.0,
+        "tension_emocional": 1.0,
+        "señales_somaticas": 1.0,
+        "motivacion_intrinseca": 0.0,
+    })
+    assert 0 <= L2_s2 <= 1
+    
+    # Contexto extremos
+    L2_c1 = compute_L2_contexto({})
+    L2_c2 = compute_L2_contexto({
+        "feedback_directo": 1.0,
+        "distancia_relacional": 1.0,
+        "tension_observada": 1.0,
+        "confianza_reportada": 0.0,
+        "impacto_colaborativo": 1.0,
+    })
+    
+    assert 0 <= L2_c1 <= 1
+    assert 0 <= L2_c2 <= 1
+
+
+REEMPLAZA TODO test_to_100_percent.py con este código.

@@ -1,9 +1,3 @@
-"""
-villasmil_omega.human_l2.puntos
-
-Sistema de Coherencia Máxima con doble punto de referencia y equilibrio dinámico.
-"""
-
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
@@ -11,7 +5,6 @@ import time
 import json
 from datetime import datetime
 from pathlib import Path
-
 
 # ============================================================
 # CONFIGURACIÓN ESTÁNDAR
@@ -60,9 +53,7 @@ class ConfiguracionEstandar:
     LOG_DIR: str = "./villasmil_omega_logs"
     ENABLE_LOGGING: bool = True
 
-
 CONF = ConfiguracionEstandar()
-
 
 # ============================================================
 # UTILIDADES BÁSICAS
@@ -71,14 +62,11 @@ CONF = ConfiguracionEstandar()
 def clamp01(x: float) -> float:
     return max(0.0, min(1.0, float(x)))
 
-
 def clamp(x: float, min_val: float, max_val: float) -> float:
     return max(min_val, min(max_val, float(x)))
 
-
 def timestamp_iso() -> str:
     return datetime.now().isoformat()
-
 
 # ============================================================
 # L2_contexto y L2_self
@@ -87,10 +75,8 @@ def timestamp_iso() -> str:
 def compute_L2_contexto(señales_relacionales: Dict[str, float],
                         conf: ConfiguracionEstandar = CONF) -> float:
     w = conf.W_CONTEXTO
-
     confianza = señales_relacionales.get("confianza_reportada", 0.5)
     confianza_invertida = 1.0 - confianza
-
     L2_ctx = (
         w["feedback_directo"] * señales_relacionales.get("feedback_directo", 0.0)
         + w["distancia_relacional"] * señales_relacionales.get("distancia_relacional", 0.0)
@@ -100,14 +86,11 @@ def compute_L2_contexto(señales_relacionales: Dict[str, float],
     )
     return clamp01(L2_ctx)
 
-
 def compute_L2_self(señales_internas: Dict[str, float],
                     conf: ConfiguracionEstandar = CONF) -> float:
     w = conf.W_SELF
-
     motiv = señales_internas.get("motivacion_intrinseca", 0.5)
     motiv_invertida = 1.0 - motiv
-
     L2_self = (
         w["fatiga_fisica"] * señales_internas.get("fatiga_fisica", 0.0)
         + w["carga_cognitiva"] * señales_internas.get("carga_cognitiva", 0.0)
@@ -117,7 +100,6 @@ def compute_L2_self(señales_internas: Dict[str, float],
     )
     return clamp01(L2_self)
 
-
 # ============================================================
 # MAD ROBUSTA
 # ============================================================
@@ -126,10 +108,8 @@ def update_mad(prev_mad: float, deviation: float,
                alpha: float = CONF.ALPHA_MAD) -> float:
     return alpha * abs(deviation) + (1.0 - alpha) * prev_mad
 
-
 def mad_to_sigma(mad_value: float) -> float:
     return 1.4826 * mad_value
-
 
 # ============================================================
 # PUNTO NEUTRO (μ_otros)
@@ -202,40 +182,27 @@ class PuntoNeutroContexto:
         estado = resultado["estado"]
 
         if estado == "DAÑANDO_CONTEXTO":
-            return (f"CONTEXTO: L₂={L2:.2f} > μ={mu:.2f}+deadband. "
-                    f"Generas tensión. Reduce impacto.")
+            return f"CONTEXTO: L₂={L2:.2f} > μ={mu:.2f}+deadband. Generas tensión. Reduce impacto."
         elif estado == "CONTEXTO_MEJORADO":
-            return (f"CONTEXTO: L₂={L2:.2f} < μ={mu:.2f}. "
-                    f"Relaciones mejoran. Continúa.")
+            return f"CONTEXTO: L₂={L2:.2f} < μ={mu:.2f}. Relaciones mejoran. Continúa."
         else:
-            return (f"CONTEXTO: L₂={L2:.2f} ≈ μ={mu:.2f}. "
-                    f"Situación # ============================================================
+            return f"CONTEXTO: L₂={L2:.2f} ≈ μ={mu:.2f}. Situación normal."
+
+# ============================================================
 # SISTEMA DE COHERENCIA MÁXIMA
 # ============================================================
 
 @dataclass
 class SistemaCoherenciaMaxima:
-    """
-    Sistema de Coherencia Máxima L2_self / L2_contexto.
-
-    Mantiene el histórico básico y expone una API simple:
-    - registrar_medicion(...)
-    - get_estado_actual()
-    """
     config: ConfiguracionEstandar = field(default_factory=lambda: CONF)
-
-    # Baselines iniciales que el core puede pasar como kwargs
     baseline_personal: float = 0.5
     baseline_contexto: float = 0.5
-
-    # Estado interno dinámico
     mu_self: Optional[float] = None
     MAD_self: float = 0.0
     contexto: PuntoNeutroContexto = field(default_factory=PuntoNeutroContexto)
     history: List[Dict[str, Any]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
-        # Si el core pasa baselines, los usamos para inicializar μ
         if self.mu_self is None and self.baseline_personal is not None:
             self.mu_self = clamp01(self.baseline_personal)
         if self.contexto.mu_otros is None and self.baseline_contexto is not None:
@@ -247,13 +214,10 @@ class SistemaCoherenciaMaxima:
         señales_relacionales: Dict[str, float],
         timestamp: Optional[float] = None,
     ) -> Dict[str, Any]:
-        """Actualiza L2_self y L2_contexto y devuelve un dict con el estado."""
         ts = timestamp if timestamp is not None else time.time()
-
         L2_s = compute_L2_self(señales_internas, self.config)
         L2_c = compute_L2_contexto(señales_relacionales, self.config)
 
-        # Inicialización de μ_self
         if self.mu_self is None:
             self.mu_self = L2_s
             self.MAD_self = 0.0
@@ -263,7 +227,6 @@ class SistemaCoherenciaMaxima:
             desviacion_self = 0.0
             sigma_self = 0.0
         else:
-            # EWMA para μ_self
             self.mu_self = (
                 self.config.ALPHA_SELF * L2_s
                 + (1.0 - self.config.ALPHA_SELF) * self.mu_self
@@ -284,9 +247,7 @@ class SistemaCoherenciaMaxima:
                 estado_self = "SELF_ESTABLE"
                 accion_self = "Mantén el ritmo"
 
-        # Actualizar contexto
         resultado_ctx = self.contexto.update(L2_c, timestamp=ts)
-
         resultado = {
             "timestamp": ts,
             "L2_self": L2_s,
@@ -303,12 +264,10 @@ class SistemaCoherenciaMaxima:
             "sigma_contexto": resultado_ctx["sigma"],
             "deadband_contexto": resultado_ctx["deadband"],
         }
-
         self.history.append(resultado)
         return resultado
 
     def get_estado_actual(self) -> Optional[Dict[str, Any]]:
-        """Devuelve el último estado registrado o None si no hay datos."""
         if not self.history:
             return None
         return self.history[-1]

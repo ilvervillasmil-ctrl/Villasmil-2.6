@@ -7,20 +7,20 @@ from math import exp
 
 def apply_bio_adjustment(bio_terms, bio_max=0.25):
     """
-    Aplica un límite superior a los términos biológicos y devuelve la suma acotada:
+    Si hay términos biológicos:
 
-        bio_clamped_i = min(term, bio_max)
-        return sum(bio_clamped_i)
+      - Calcula la suma total de bio_terms.
+      - Devuelve min(suma, bio_max).
 
     Si la lista está vacía, retorna 0.0.
     """
     if not bio_terms:
         return 0.0
-    total = 0.0
-    for term in bio_terms:
-        if term > bio_max:
-            term = bio_max
-        total += term
+    total = sum(bio_terms)
+    if total > bio_max:
+        total = bio_max
+    if total < 0.0:
+        total = 0.0
     return total
 
 

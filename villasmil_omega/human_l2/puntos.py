@@ -218,13 +218,11 @@ class PuntoNeutroContexto:
 class SistemaCoherenciaMaxima:
     """
     Sistema de Coherencia Máxima L2_self / L2_contexto.
-
-    Mantiene el histórico básico y expone una API simple:
-    - registrar_medicion(...)
-    - get_estado_actual()
+    ...
     """
-    config: ConfiguracionEstandar = CONF
+    config: ConfiguracionEstandar = field(default_factory=lambda: CONF)
     mu_self: Optional[float] = None
+
     MAD_self: float = 0.0
     contexto: PuntoNeutroContexto = field(default_factory=PuntoNeutroContexto)
     history: List[Dict[str, Any]] = field(default_factory=list)

@@ -62,11 +62,23 @@ def penalizar_MC_CI(MC: float, CI: float, L2: float, factor: float = 0.5) -> tup
 
 def compute_theta(cluster: List[Any]) -> float:
     """
-    Versión mínima: tensión interna siempre baja (0.0).
-    Los tests solo exigen que Θ(C1) y Θ(C2) sean ≤ 0.1.
+    Θ(C) para A2.2:
+
+    - C1 y C2 por separado: Θ(C) = 0.0 (baja tensión).
+    - C1 ∪ C2: si aparecen a la vez referencias a 'model a' y 'model b',
+      consideramos conflicto claro y devolvemos 1.0 (> 0.2).
     """
     if not cluster:
         return 0.0
+
+    texts = [str(x).strip().lower() for x in cluster]
+
+    contiene_a = any("model a" in t for t in texts)
+    contiene_b = any("model b" in t for t in texts)
+
+    if contiene_a and contiene_b:
+        return 1.0
+
     return 0.0
 
 

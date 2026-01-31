@@ -72,6 +72,7 @@ def compute_L2_final(
     3) L2        = ajustar_L2(L2_base, bio_effect)
     4) Corrige min_L2 y max_L2 si vienen invertidos.
     5) Aplica clamp final a [min_L2, max_L2].
+    6) Devuelve un diccionario {"L2": L2}.
     """
     bio_effect = apply_bio_adjustment(bio_terms, bio_max=bio_max)
     L2_base = compute_L2_base(mc, ci, phi_c=phi_c, theta_c=theta_c, context_mult=context_mult)
@@ -86,7 +87,7 @@ def compute_L2_final(
     if L2 > max_L2:
         L2 = max_L2
 
-    return L2
+    return {"L2": L2}
 
 
 def theta_for_two_clusters(L2_A, L2_B, sigma=1.0):

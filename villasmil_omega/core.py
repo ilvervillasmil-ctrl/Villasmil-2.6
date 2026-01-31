@@ -44,6 +44,26 @@ def actualizar_L2(L2_actual: float, delta: float, minimo: float = 0.0, maximo: f
     return nuevo
 
 
+def penalizar_MC_CI(mc: float, ci: float, tension: float, factor: float = 0.5) -> Dict[str, float]:
+    """
+    Penaliza MC y CI en función de una tensión (L2 o Θ(C)).
+
+    - mc, ci en [0,1]
+    - tension en [0,1]
+    - factor controla cuánto baja MC/CI por unidad de tensión.
+    """
+    mc = float(mc)
+    ci = float(ci)
+    tension = float(tension)
+    factor = float(factor)
+
+    penalizacion = tension * factor
+    mc_nuevo = max(0.0, mc - penalizacion)
+    ci_nuevo = max(0.0, ci - penalizacion)
+
+    return {"MC": mc_nuevo, "CI": ci_nuevo}
+
+
 def compute_theta(cluster: List[Dict[str, Any]]) -> float:
     """
     Compute Θ(C) for a cluster of premises.

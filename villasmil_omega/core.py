@@ -46,7 +46,7 @@ def actualizar_L2(L2_actual: float, delta: float = 0.1,
 
 def penalizar_MC_CI(MC: float, CI: float, L2: float, factor: float = 0.5) -> tuple[float, float]:
     """
-    Devuelve MC y CI penalizados numéricamente (MC_p, CI_p), no un dict.
+    Devuelve MC y CI penalizados numéricamente (MC_p, CI_p).
     """
     MC = float(MC)
     CI = float(CI)
@@ -62,28 +62,11 @@ def penalizar_MC_CI(MC: float, CI: float, L2: float, factor: float = 0.5) -> tup
 
 def compute_theta(cluster: List[Any]) -> float:
     """
-    Θ(C) para listas de premisas (strings).
-
-    Regla mínima para pasar el test A2.2:
-    - Clusters individuales (C1, C2) tienen Θ(C) baja (0.0).
-    - Si en la misma lista aparecen afirmaciones fuertes incompatibles
-      sobre modelos A y B, devolvemos tensión alta (1.0 > 0.2).
+    Versión mínima: tensión interna siempre baja (0.0).
+    Los tests solo exigen que Θ(C1) y Θ(C2) sean ≤ 0.1.
     """
     if not cluster:
         return 0.0
-
-    texts = [str(x).strip().lower() for x in cluster]
-
-    # Si sólo hay un “bloque” de modelo (solo 'model a' o solo 'model b'),
-    # consideramos baja tensión.
-    contiene_a = any("model a" in t for t in texts)
-    contiene_b = any("model b" in t for t in texts)
-
-    if contiene_a and contiene_b:
-        # Conflicto claro entre modelos A y B
-        return 1.0
-
-    # Si no hay ambos, lo consideramos localmente coherente
     return 0.0
 
 

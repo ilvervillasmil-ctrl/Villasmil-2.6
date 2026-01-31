@@ -52,6 +52,20 @@ def compute_theta(L2, sigma=1.0):
     return exp(- (delta ** 2) / (2 * (sigma ** 2)))
 
 
+def compute_L2_final(MC, CI, ruido=0.0, bio_factor=1.0, w_mc=0.5, w_ci=0.5):
+    """
+    Pipeline completo para L2:
+
+        L2_base  = w_mc * MC + w_ci * CI
+        L2_adj   = ajustar_L2(L2_base, ruido)
+        L2_final = apply_bio_adjustment(L2_adj, bio_factor)
+    """
+    L2_base = compute_L2_base(MC, CI, w_mc=w_mc, w_ci=w_ci)
+    L2_adj = ajustar_L2(L2_base, ruido=ruido)
+    L2_final = apply_bio_adjustment(L2_adj, bio_factor=bio_factor)
+    return L2_final
+
+
 def theta_for_two_clusters(L2_A, L2_B, sigma=1.0):
     """
     Calcula θ para dos clusters A y B y devuelve un diccionario.

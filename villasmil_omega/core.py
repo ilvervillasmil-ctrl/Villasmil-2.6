@@ -1,5 +1,5 @@
 """
-Villasmil-Ω — core coherence utilities (Θ(C) mínima para A2.2 tests)
+Villasmil-Ω — core coherence utilities
 """
 
 from typing import List, Dict, Any
@@ -24,15 +24,20 @@ def indice_mc(mc_values: List[float]) -> float:
     return float(s / len(mc_values))
 
 
+def indice_ci(ci_values: List[float]) -> float:
+    """
+    Índice simple de CI:
+    - Misma idea que indice_mc, pero para CI.
+    """
+    if not ci_values:
+        return 0.0
+    s = sum(float(x) for x in ci_values)
+    return float(s / len(ci_values))
+
+
 def compute_theta(cluster: List[Dict[str, Any]]) -> float:
     """
     Compute Θ(C) for a cluster of premises.
-
-    Versión mínima pero coherente con A2.2:
-    - cluster es una lista de dicts con al menos la clave "value" (True/False o 0/1).
-    - Θ(C) mide cuánta contradicción interna hay dentro del cluster.
-    - Si todos los valores son iguales -> Θ(C) ~ 0 (baja tensión).
-    - Si hay mezcla fuerte de valores opuestos -> Θ(C) más alto.
     """
     if not cluster:
         return 0.0

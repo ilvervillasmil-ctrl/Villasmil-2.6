@@ -33,9 +33,11 @@ def test_respiro_umbral_coste():
     # Forzamos que el coste supere el umbral para que el sistema 'elija' no actuar
     paz, _ = should_apply(0.9, {"L1": 0.5}, {"L1": 0.51}, cost_threshold=0.1)
     assert paz is True
-    def test_defensa_extrema_core():
+
+def test_defensa_extrema_core():
+    """Cubre las líneas de seguridad 82-94 de core.py activando defensas de tipos."""
     from villasmil_omega.core import ajustar_mc_ci_por_coherencia
-    # Pasamos datos incoherentes para activar las líneas de seguridad 82-94
+    # Pasamos datos incoherentes para activar las líneas de seguridad
+    # Al pasar un string donde debe ir un dict/float, el core se protege.
     mc, ci = ajustar_mc_ci_por_coherencia("error", 0.5, None)
     assert mc == 0.0 # El sistema se bloquea por seguridad
-

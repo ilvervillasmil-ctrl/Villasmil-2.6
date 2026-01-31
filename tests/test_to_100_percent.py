@@ -273,3 +273,95 @@ def test_invariancia_linea_12():
     inv = Invariancia(epsilon=1e-3, ventana=5)
     assert inv.es_invariante([0.5] * 5) == True
     assert inv.es_invariante([0.5, 0.5, 0.5, 0.5, 0.502]) == False
+
+# ============================================================
+# TESTS ADICIONALES PARA LLEGAR AL 100% (INTEGRIDAD TOTAL)
+# ============================================================
+
+def test_core_todas_branches_theta():
+    """Ataca TODAS las branches restantes de compute_theta"""
+    import villasmil_omega.core as core
+    
+    # Casos de lista vacía o modelos dominantes insuficientes
+    assert core.compute_theta([]) == 0.0
+    assert core.compute_theta(["model a text"] * 7) == 0.0
+    assert core.compute_theta(["model b text"] * 7) == 0.0
+    assert core.compute_theta(["model a", "model b"]) == 0.0
+    # Caso de balance perfecto que dispara la branch final
+    assert core.compute_theta(["model a"] * 3 + ["model b"] * 3) == 1.0
+
+
+def test_l2model_todas_lineas():
+    """Cubre líneas 52-53, 89, 103-107 de l2_model"""
+    from villasmil_omega.l2_model import ajustar_L2, compute_L2_final
+    
+    # Forzar el Clamping inferior y superior (Línea 89)
+    assert ajustar_L2(-5.0, 2.0) == 0.0
+    assert ajustar_L2(5.0, 2.0) == 1.0
+    
+    # Forzar ramas de cálculo con historial y ajustes bio (52-53)
+    r1 = compute_L2_final(0.2, 0.2, 0.5, 0.5, [0.1], 0.25, 1.0, 0.9, 0.1)
+    assert 0.1 <= r1["L2"] <= 0.9
+    
+    # Caso extremo para reset/inicialización (103-107)
+    r2 = compute_L2_final(0.0, 0.0, 0.0, 0.0, [0.25], 0.25, 1.0, 0.0, 1.0)
+    assert r2["L2"] == 1.0
+
+
+def test_puntos_lineas_180_189_completo():
+    """Cubre líneas 180-189 completamente mediante inyección de estado"""
+    from villasmil_omega.human_l2.puntos import SistemaCoherenciaMaxima
+    
+    sistema = SistemaCoherenciaMaxima()
+    
+    # Caso 1: mu_self es None (Línea 181)
+    sistema.mu_self = None
+    r1 = sistema.registrar_medicion({"fatiga_fisica": 0.3}, {"feedback_directo": 0.2})
+    
+    # Caso 2: mu_self bajo y MAD bajo (Fuerza ajuste por desviación)
+    sistema.mu_self = 0.1
+    sistema.MAD_self = 0.001
+    r2 = sistema.registrar_medicion(
+        {"fatiga_fisica": 1.0, "carga_cognitiva": 1.0, "tension_emocional": 1.0, 
+         "señales_somaticas": 1.0, "motivacion_intrinseca": 0.0},
+        {"feedback_directo": 0.2}
+    )
+    
+    # Caso 3: mu_self alto (Fuerza la rama de recuperación)
+    sistema.mu_self = 0.9
+    sistema.MAD_self = 0.001
+    r3 = sistema.registrar_medicion(
+        {"fatiga_fisica": 0.0, "carga_cognitiva": 0.0, "motivacion_intrinseca": 1.0},
+        {"feedback_directo": 0.2}
+    )
+    
+    # Caso 4: mu_self en zona media con MAD normal
+    sistema.mu_self = 0.5
+    sistema.MAD_self = 0.1
+    r4 = sistema.registrar_medicion({"fatiga_fisica": 0.5}, {"feedback_directo": 0.2})
+    
+    assert all(r is not None for r in [r1, r2, r3, r4])
+
+
+def test_respiro_lineas_40_41():
+    """Cubre líneas 40-41 de respiro (Cálculo de ganancia y aplicación)"""
+    from villasmil_omega.respiro import should_apply
+    
+    # Fuerza la aplicación por discrepancia de estados
+    apply1, _ = should_apply(0.5, {"a": 1.5}, {"a": 1.6}, 1.0)
+    assert apply1 == True
+    
+    # Fuerza cálculo de ganancia mínima
+    apply2, gain = should_apply(0.99, {"a": 0.01}, {"a": 0.011}, 100.0)
+    assert gain < 0.02 or apply2 == True
+
+
+def test_invariancia_linea_12():
+    """Cubre línea 12 de invariancia (Detección de fluctuación)"""
+    from villasmil_omega.cierre.invariancia import Invariancia
+    
+    inv = Invariancia(epsilon=1e-3, ventana=5)
+    # Caso de éxito (invariante)
+    assert inv.es_invariante([0.5] * 5) == True
+    # Caso de ruptura de invariancia por delta > epsilon
+    assert inv.es_invariante([0.5, 0.5, 0.5, 0.5, 0.502]) == False

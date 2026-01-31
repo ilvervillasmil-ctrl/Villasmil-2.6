@@ -5,6 +5,25 @@ Villasmil-Ω — core coherence utilities (Θ(C) mínima para A2.2 tests)
 from typing import List, Dict, Any
 
 
+def suma_omega(a: float, b: float) -> float:
+    """
+    Suma simple usada en tests básicos.
+    """
+    return float(a) + float(b)
+
+
+def indice_mc(mc_values: List[float]) -> float:
+    """
+    Índice simple de MC:
+    - Recibe una lista de valores MC en [0,1].
+    - Devuelve el promedio (también en [0,1]).
+    """
+    if not mc_values:
+        return 0.0
+    s = sum(float(x) for x in mc_values)
+    return float(s / len(mc_values))
+
+
 def compute_theta(cluster: List[Dict[str, Any]]) -> float:
     """
     Compute Θ(C) for a cluster of premises.

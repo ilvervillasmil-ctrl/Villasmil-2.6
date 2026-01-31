@@ -1,97 +1,59 @@
-from __future__ import annotations
-from dataclasses import dataclass
-from typing import Dict, Tuple
-import math
+import pytest
 import time
+from villasmil_omega.respiro import (
+    distribute_action,
+    RespiroConfig,
+    RespiroState,
+    should_apply,
+    detect_respiro
+)
+from villasmil_omega.core import ajustar_mc_ci_por_coherencia
 
-@dataclass
-class RespiroConfig:
-    """Reglas prácitcas para el controlador (Mente Relajada)."""
-    max_total_effort: float = 1.0
-    min_component: float = 0.0
-    max_component: float = 0.6
-    interv_threshold_per_hour: float = 5.0
-    min_deadband_fraction: float = 0.5
-    marginal_gain_epsilon: float = 0.02
-
-@dataclass
-class RespiroState:
-    """Estado de autorregulación (Propósito Claro)."""
-    interv_count: int = 0
-    deadband_seconds: float = 0.0
-    window_seconds: float = 3600.0
-    window_start: float = None
-
-    def start_window(self) -> None:
-        if self.window_start is None:
-            self.window_start = time.time()
-
-    def metrics(self) -> Tuple[float, float]:
-        self.start_window()
-        elapsed = max(1.0, time.time() - self.window_start)
-        interv_per_hour = self.interv_count * 3600.0 / elapsed
-        frac_deadband = min(1.0, self.deadband_seconds / elapsed)
-        return interv_per_hour, frac_deadband
-
-def distribute_action(
-    base_effort: float,
-    sensitivities: Dict[str, float],
-    cfg: RespiroConfig,
-) -> Dict[str, float]:
-    """
-    REGLA 1: Nunca atacar una sola capa.
-    Distribuye la carga entre L1 y L6 para no romper el límite.
-    """
-    base_effort = max(0.0, min(base_effort, cfg.max_total_effort))
-    s_sum = sum(max(0.0, v) for v in sensitivities.values())
+def test_l1_sostiene_la_carga():
+    """REGLA 1: La L1 distribuye, no reacciona."""
+    cfg = RespiroConfig()
+    sensitividades = {"L1": 0.1, "L4": 0.9, "L6": 1.0}
     
-    if s_sum <= 0.0:
-        return {k: 0.0 for k in sensitivities}
+    # Aplicamos carga pesada
+    accion = distribute_action(0.8, sensitividades, cfg)
     
-    weights = {k: max(0.0, v) / s_sum for k, v in sensitivities.items()}
-    raw = {k: base_effort * weights[k] for k in sensitivities}
-    
-    return {
-        k: max(cfg.min_component, min(v, cfg.max_component)) 
-        for k, v in raw.items()
-    }
+    # Verificamos que L1 sea 'como si nada' (carga mínima)
+    assert accion["L1"] < 0.1
+    # Verificamos que las capas superiores absorban el esfuerzo
+    assert accion["L6"] > accion["L1"]
 
-@dataclass
-class SimulatedOutcome:
-    R_final: float
-    cost: float
-
-def simulate_apply(current_R: float, effort: Dict[str, float]) -> SimulatedOutcome:
-    """Simula el impacto: Beneficio saturable y coste de reacción."""
-    total_effort = sum(effort.values())
-    delta_R = 0.2 * (1.0 - math.exp(-total_effort))
-    cost = total_effort ** 2
-    return SimulatedOutcome(R_final=current_R + delta_R, cost=cost)
-
-def should_apply(
-    current_R: float,
-    effort_soft: Dict[str, float],
-    effort_hard: Dict[str, float],
-    cost_threshold: float,
-) -> Tuple[bool, float]:
-    """REGLA 2: No forzar el límite. Compara si el empuje extra vale la pena."""
-    soft = simulate_apply(current_R, effort_soft)
-    hard = simulate_apply(current_R, effort_hard)
-    marginal_gain = hard.R_final - soft.R_final
-    
-    # "Podría empujar más... pero no hace falta."
-    can_apply = soft.cost <= cost_threshold and marginal_gain < 0.02
-    return can_apply, marginal_gain
-
-def detect_respiro(
-    state: RespiroState,
-    cfg: RespiroConfig,
-    marginal_gain_probe: float,
-) -> bool:
-    """REGLA 3: El éxito es no reaccionar."""
-    interv_per_hour, frac_deadband = state.metrics()
-    return (
-        interv_per_hour < cfg.interv_threshold_per_hour and
-        frac_deadband >= cfg.min_deadband_fraction and
-        marginal_gain_probe < cfg.marginal_gain_epsilon
+def test_l2_no_conforme_y_respiro():
+    """REGLA 2 y 3: Evaluar si hace falta empujar más."""
+    # Simulamos que ya estamos cerca del objetivo
+    # (Mente relajada: ganancia marginal pequeña)
+    apply_soft, marginal = should_apply(
+        current_R=0.9,
+        effort_soft={"L1": 0.05},
+        effort_hard={"L1": 0.5},
+        cost_threshold=1.0
     )
+    
+    # Si la ganancia es mínima, apply_soft debe ser True (no hace falta empujar)
+    assert apply_soft is True
+    
+    # Validamos el estado de Respiro (Éxito = No reaccionar)
+    st = RespiroState()
+    st.window_start = time.time() - 3600
+    st.deadband_seconds = 3000
+    st.interv_count = 1
+    
+    assert detect_respiro(st, cfg=RespiroConfig(), marginal_gain_probe=0.01) is True
+
+def test_apretar_aqui_para_subir_alla():
+    """Conectamos el Respiro con los 'Missings' de Core (81-107)."""
+    # Forzamos los estados de colapso que faltan en el reporte
+    for estado in ["BLOQUEO", "DETENER_INMEDIATO", "BURNOUT_INMINENTE"]:
+        mock_l2 = {
+            "estado_self": {"estado": estado},
+            "estado_contexto": {"estado": "CAOS"},
+            "coherencia_score": 0.0,
+            "decision": {"accion": "BLOQUEO" if estado == "BLOQUEO" else "DETENER_INMEDIATO"}
+        }
+        # Esta llamada 'ilumina' las líneas 81-107 de core.py
+        mc, ci = ajustar_mc_ci_por_coherencia(0.5, 0.5, mock_l2)
+        assert mc == 0.0

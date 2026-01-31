@@ -59,4 +59,10 @@ def detect_respiro(state: RespiroState, cfg: RespiroConfig, marginal_gain_probe:
     return (interv_per_hour < cfg.interv_threshold_per_hour and 
             frac_deadband >= cfg.min_deadband_fraction and 
             marginal_gain_probe < cfg.marginal_gain_epsilon)
+from villasmil_omega.cierre.invariancia import Invariancia
+
+# Dentro de detect_respiro o como extensión:
+def es_momento_de_cerrar(historial_R: list) -> bool:
+    detector = Invariancia(epsilon=1e-3, ventana=5)
+    return detector.es_invariante(historial_R)
 

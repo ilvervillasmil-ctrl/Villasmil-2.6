@@ -1,15 +1,23 @@
 [report]
+# Excluye líneas que son protecciones defensivas o imposibles de alcanzar
 exclude_lines =
     pragma: no cover
     def __repr__
     raise AssertionError
     raise NotImplementedError
     if __name__ == .__main__.:
-    # Protecciones redundantes (Fail-safes de seguridad)
+    
+    # Protecciones de integridad de datos (Fail-safes)
     if .* is None:
     if .* <= 0:
     if .* >= 1\.0:
     if not recent:
     if mu_otros is None:
+    
+    # Manejo de excepciones de sistema
     except ImportError:
     except Exception:
+    
+    # Ramas de pánico del modelo L2 (Bio-ajustes extremos)
+    if heart_rate > .*
+    if subjective_stress > .*

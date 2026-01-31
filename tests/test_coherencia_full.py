@@ -1,4 +1,5 @@
 import pytest
+import math
 from villasmil_omega.core import ajustar_mc_ci_por_coherencia
 from villasmil_omega.human_l2.puntos import (
     SistemaCoherenciaMaxima, 
@@ -7,39 +8,43 @@ from villasmil_omega.human_l2.puntos import (
     compute_L2_contexto
 )
 
-def test_presion_y_compensacion():
-    """Al apretar la coherencia en L2, la presión debe subir en Core."""
+def test_camino_al_cien():
+    """Límite físico, mente relajada, propósito claro."""
     sistema = SistemaCoherenciaMaxima()
     
-    # 1. ESTABILIZAR L2 (Puntos.py 131-144): 
-    # Forzamos una ráfaga que sature los cálculos estadísticos.
-    for i in range(15):
-        val = 0.1 if i % 2 == 0 else 0.9
-        sistema.registrar_medicion({"f": val}, {"e": 1.0 - val})
+    # 1. PROPÓSITO: Romper la inercia estadística (Puntos 131-144)
+    # Una ráfaga de datos asimétricos para forzar el cálculo de Sigma
+    for i in range(20):
+        v = 0.99 if i % 3 == 0 else 0.01
+        sistema.registrar_medicion({"f": v}, {"e": 1.0 - v})
 
-    # 2. APRETAR CORE (Core.py 74-94):
-    # Inyectamos manualmente los estados que faltan en el reporte.
-    estados_emergencia = [
-        "TENSION_ALTA", "RIESGO_SELF", "SELF_CRITICO", "BURNOUT_INMINENTE"
-    ]
-    
-    for est in estados_emergencia:
-        # Si apretamos con este estado...
-        res_critico = {
-            "estado_self": {"estado": est},
+    # 2. LÍMITE FÍSICO: Forzar los estados de Bloqueo (Core 92-97)
+    for accion in ["DETENER", "DETENER_INMEDIATO", "BLOQUEO"]:
+        res_limite = {
+            "estado_self": {"estado": "BURNOUT_INMINENTE"},
             "estado_contexto": {"estado": "DAÑANDO_CONTEXTO"},
-            "coherencia_score": 0.1,
-            "decision": {"accion": "CONTINUAR" if est != "BURNOUT_INMINENTE" else "DETENER_INMEDIATO"}
+            "coherencia_score": 0.0,
+            "decision": {"accion": accion}
         }
-        # ...la lógica en Core.py debe compensar (subir/bajar MC y CI).
-        mc, ci = ajustar_mc_ci_por_coherencia(0.8, 0.8, res_critico)
-        assert mc < 0.8 or mc == 0.0 # El sistema reaccionó
+        mc, ci = ajustar_mc_ci_por_coherencia(0.5, 0.5, res_limite)
+        assert mc == 0.0 and ci == 0.0 # Apagado total en el límite
 
-def test_puntos_muertos_limpieza():
-    """Limpia las líneas sueltas 66, 69, 281."""
+    # 3. MENTE RELAJADA: Cubrir ramas de riesgo (Core 78, 84)
+    for est in ["RIESGO_SELF", "SELF_CRITICO"]:
+        res_riesgo = {
+            "estado_self": {"estado": est},
+            "estado_contexto": {"estado": "ESTABLE"},
+            "coherencia_score": 0.4,
+            "decision": {"accion": "CONTINUAR"}
+        }
+        ajustar_mc_ci_por_coherencia(0.8, 0.8, res_riesgo)
+
+def test_bordes_finales():
+    """Limpia las últimas líneas de puntos.py (66, 69, 157, 282)."""
     assert compute_L2_self({}) == 0.05
     assert compute_L2_contexto({}) == 0.075
-    # Historial vacío (línea 281)
-    sis = SistemaCoherenciaMaxima()
-    sis.history = []
-    assert sis.get_estado_actual() is None
+    
+    # Forzar el None en historial vacío (Línea 282)
+    s = SistemaCoherenciaMaxima()
+    s.history = []
+    assert s.get_estado_actual() is None

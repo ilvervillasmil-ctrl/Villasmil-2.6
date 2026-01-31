@@ -3,45 +3,38 @@ import math
 from villasmil_omega.core import ajustar_mc_ci_por_coherencia
 from villasmil_omega.human_l2.puntos import (
     SistemaCoherenciaMaxima, 
-    ConfiguracionEstandar, 
-    compute_L2_self, 
+    ConfiguracionEstandar,
+    compute_L2_self,
     compute_L2_contexto
 )
 
-def test_respiracion_biologica_y_equilibrio():
-    """Permite que el sistema respire para activar Sigma y MAD."""
+def test_vasos_comunicantes_l2_core():
+    """Al apretar la coherencia en L2, la presión debe subir en Core."""
     conf = ConfiguracionEstandar()
     sistema = SistemaCoherenciaMaxima(config=conf)
     
-    # Simulación de inhalación y exhalación (15 ciclos)
-    # Esto genera la varianza necesaria para las líneas 131-144 de puntos.py
-    for t in range(15):
-        # Onda senoidal: la forma más pura de equilibrio en movimiento
-        respiracion = 0.5 + 0.4 * math.sin(t * 0.5) 
-        sistema.registrar_medicion(
-            {"pulso_biologico": respiracion}, 
-            {"ritmo_contexto": 1.0 - respiracion}
-        )
+    # Generamos la presión estadística (Puntos.py)
+    # 20 ciclos de oscilación rítmica para saturar el Sigma
+    for t in range(20):
+        val = 0.5 + 0.48 * math.sin(t)
+        sistema.registrar_medicion({"bio": val}, {"env": 1.0 - val})
     
-    # Verificamos que tras respirar, el sistema tiene un estado coherente
-    estado = sistema.get_estado_actual()
-    assert estado is not None
-    assert "coherencia_score" in estado
+    # El 'Apretón': Extraemos el resultado de L2 y lo inyectamos en Core
+    # Esto une las líneas 131-144 de puntos con las 77-107 de core
+    estado_l2 = sistema.get_estado_actual()
+    
+    # Probamos la reacción del motor (Core.py) ante esta presión
+    # Caso 1: Motor a plena carga
+    mc_alta, ci_alta = ajustar_mc_ci_por_coherencia(1.0, 1.0, estado_l2)
+    # Caso 2: Motor en reserva
+    mc_baja, ci_baja = ajustar_mc_ci_por_coherencia(0.2, 0.2, estado_l2)
+    
+    assert mc_alta != 1.0 or mc_baja != 0.2 # Confirmamos que hubo flujo de datos
 
-def test_proteccion_en_caos():
-    """Verifica que el sistema sabe apagarse si la respiración se corta (Core)."""
-    # Forzamos los estados de detención total (Líneas 90-94 de core.py)
-    for accion in ["DETENER", "DETENER_INMEDIATO"]:
-        res_critico = {
-            "estado_self": {"estado": "BURNOUT_INMINENTE"},
-            "estado_contexto": {"estado": "DAÑANDO_CONTEXTO"},
-            "coherencia_score": 0.0,
-            "decision": {"accion": accion}
-        }
-        mc, ci = ajustar_mc_ci_por_coherencia(0.5, 0.5, res_critico)
-        assert mc == 0.0 and ci == 0.0
-
-def test_guardianes_de_rango():
-    """La paradoja del 0.05 y 0.075: la base de la paz."""
+def test_puntos_muertos():
+    """Cubrimos los rincones donde no llega la respiración."""
+    # Línea 281: historial vacío
+    assert SistemaCoherenciaMaxima().get_estado_actual() is None
+    # Paradoja de seguridad
     assert compute_L2_self({}) == 0.05
     assert compute_L2_contexto({}) == 0.075

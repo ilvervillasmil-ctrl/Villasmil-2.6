@@ -92,3 +92,5 @@ def theta_for_two_clusters(c1: List[Any], c2: List[Any]) -> Dict[str, float]:
         "theta_c2": theta_c2,
         "theta_combined": theta_combined,
     }
+    from villasmil_omega.human_l2.puntos import SistemaCoherenciaMaxima
+

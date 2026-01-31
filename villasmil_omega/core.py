@@ -43,6 +43,68 @@ def actualizar_L2(L2_actual: float, delta: float = 0.1,
         nuevo = maximo
     return nuevo
 
+from typing import Tuple, Dict, Any
+from villasmil_omega.human_l2.puntos import SistemaCoherenciaMaxima
+
+# Instancia global (opcional) del sistema de coherencia
+sistema_coherencia = SistemaCoherenciaMaxima(
+    baseline_personal=0.40,
+    enable_logging=False,
+)
+
+
+def ajustar_mc_ci_por_coherencia(
+    mc_base: float,
+    ci_base: float,
+    resultado_coherencia: Dict[str, Any],
+) -> Tuple[float, float]:
+    """
+    Ajusta MC y CI según el estado de coherencia biológica y contextual.
+
+    mc_base, ci_base: índices calculados por tu fórmula (antes de ajuste biológico).
+    resultado_coherencia: salida de SistemaCoherenciaMaxima.ciclo_coherencia().
+    """
+    estado_self = resultado_coherencia["estado_self"]["estado"]
+    estado_ctx = resultado_coherencia["estado_contexto"]["estado"]
+    decision = resultado_coherencia["decision"]["accion"]
+    coherencia_score = resultado_coherencia["coherencia_score"]
+
+    # 1) Burnout o self crítico → bloquea operaciones
+    if estado_self in ("BURNOUT_INMINENTE", "SELF_CRITICO"):
+        return 0.0, 0.0
+
+    # 2) Decisión explícita de detener
+    if decision in ("DETENER", "DETENER_INMEDIATO"):
+        return 0.0, 0.0
+
+    # 3) Factores por estado interno
+    if estado_self == "TENSION_ALTA":
+        factor_self = 0.5
+    elif estado_self == "RECUPERADO":
+        factor_self = 1.05
+    else:
+        factor_self = 1.0
+
+    # 4) Factores por contexto (penaliza CI más cuando dañas contexto)
+    if estado_ctx == "DAÑANDO_CONTEXTO":
+        factor_ctx_mc = 0.9
+        factor_ctx_ci = 0.6
+    elif estado_ctx == "CONTEXTO_MEJORADO":
+        factor_ctx_mc = 1.05
+        factor_ctx_ci = 1.05
+    else:
+        factor_ctx_mc = 1.0
+        factor_ctx_ci = 1.0
+
+    # 5) Techo por coherencia global
+    factor_coherencia = coherencia_score  # entre 0 y 1
+
+    mc_factor = factor_self * factor_ctx_mc * factor_coherencia
+    ci_factor = factor_self * factor_ctx_ci * factor_coherencia
+
+    mc_aj = max(0.0, min(1.0, mc_base * mc_factor))
+    ci_aj = max(0.0, min(1.0, ci_base * ci_factor))
+    return mc_aj, ci_aj
 
 def penalizar_MC_CI(MC: float, CI: float, L2: float, factor: float = 0.5) -> tuple[float, float]:
     """

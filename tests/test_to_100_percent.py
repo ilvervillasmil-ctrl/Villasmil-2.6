@@ -1,13 +1,3 @@
-✅ VEO EL PROBLEMA - SOLO EXISTEN 2 CLASES
-En puntos.py solo existen:
-	∙	ConfiguracionEstandar
-	∙	PuntoNeutroContexto
-	∙	SistemaCoherenciaMaxima
-NO existen:
-	∙	PuntoEquilibrioSelfDinamico
-	∙	ProtocoloPrioridad
-TEST CORRECTO - SOLO LO QUE EXISTE:
-
 # tests/test_to_100_percent.py
 """Tests para cubrir líneas faltantes en puntos.py"""
 
@@ -154,6 +144,3 @@ def test_compute_L2_valores_extremos():
     
     assert 0 <= L2_c1 <= 1
     assert 0 <= L2_c2 <= 1
-
-
-REEMPLAZA TODO test_to_100_percent.py con este código.

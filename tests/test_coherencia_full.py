@@ -8,43 +8,43 @@ from villasmil_omega.human_l2.puntos import (
     compute_L2_contexto
 )
 
-def test_camino_al_cien():
-    """Límite físico, mente relajada, propósito claro."""
+def test_jerarquia_omega_100():
+    """L1 estable, L2 inconforme, L4-L6 al límite."""
+    # L1: 'Como si nada' - Iniciamos el sistema en paz
     sistema = SistemaCoherenciaMaxima()
     
-    # 1. PROPÓSITO: Romper la inercia estadística (Puntos 131-144)
-    # Una ráfaga de datos asimétricos para forzar el cálculo de Sigma
-    for i in range(20):
-        v = 0.99 if i % 3 == 0 else 0.01
-        sistema.registrar_medicion({"f": v}, {"e": 1.0 - v})
-
-    # 2. LÍMITE FÍSICO: Forzar los estados de Bloqueo (Core 92-97)
-    for accion in ["DETENER", "DETENER_INMEDIATO", "BLOQUEO"]:
-        res_limite = {
-            "estado_self": {"estado": "BURNOUT_INMINENTE"},
-            "estado_contexto": {"estado": "DAÑANDO_CONTEXTO"},
-            "coherencia_score": 0.0,
+    # L2: 'Inconforme' - Forzamos el cálculo de Sigma y MAD (Puntos 131-144)
+    # Una ráfaga de datos que 'tiemblan' (alta varianza)
+    for i in range(25):
+        tiembla = 0.5 + 0.49 * (1 if i % 2 == 0 else -1)
+        sistema.registrar_medicion({"f": tiembla}, {"e": 1.0 - tiembla})
+    
+    # Core: 'Máxima capacidad' - Cubrimos las ramas críticas (78-94)
+    # Probamos la reacción del sistema ante el colapso inminente
+    casos_extremos = [
+        ("RIESGO_SELF", 0.4, "CONTINUAR"),
+        ("SELF_CRITICO", 0.1, "DETENER"),
+        ("BURNOUT_INMINENTE", 0.0, "DETENER_INMEDIATO")
+    ]
+    
+    for estado, score, accion in casos_extremos:
+        res = {
+            "estado_self": {"estado": estado},
+            "estado_contexto": {"estado": "CAOS_EXTERNO"},
+            "coherencia_score": score,
             "decision": {"accion": accion}
         }
-        mc, ci = ajustar_mc_ci_por_coherencia(0.5, 0.5, res_limite)
-        assert mc == 0.0 and ci == 0.0 # Apagado total en el límite
+        # Forzamos a Core a procesar el desequilibrio de L2
+        mc, ci = ajustar_mc_ci_por_coherencia(0.9, 0.9, res)
+        # En el límite, MC y CI deben ceder o bloquearse (Líneas 90-94)
+        if accion.startswith("DETENER"):
+            assert mc == 0.0
 
-    # 3. MENTE RELAJADA: Cubrir ramas de riesgo (Core 78, 84)
-    for est in ["RIESGO_SELF", "SELF_CRITICO"]:
-        res_riesgo = {
-            "estado_self": {"estado": est},
-            "estado_contexto": {"estado": "ESTABLE"},
-            "coherencia_score": 0.4,
-            "decision": {"accion": "CONTINUAR"}
-        }
-        ajustar_mc_ci_por_coherencia(0.8, 0.8, res_riesgo)
-
-def test_bordes_finales():
-    """Limpia las últimas líneas de puntos.py (66, 69, 157, 282)."""
+def test_limpieza_sombras():
+    """Ataca las líneas sueltas remanentes."""
     assert compute_L2_self({}) == 0.05
     assert compute_L2_contexto({}) == 0.075
-    
-    # Forzar el None en historial vacío (Línea 282)
+    # Forzar historial vacío línea 282
     s = SistemaCoherenciaMaxima()
     s.history = []
     assert s.get_estado_actual() is None

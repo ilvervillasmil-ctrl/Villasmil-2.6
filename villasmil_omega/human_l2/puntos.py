@@ -194,9 +194,14 @@ class PuntoNeutroContexto:
 
 @dataclass
 class SistemaCoherenciaMaxima:
+    """
+    Sistema de Coherencia Máxima L2_self / L2_contexto.
+    Compatible con la llamada desde core.py.
+    """
     config: ConfiguracionEstandar = field(default_factory=lambda: CONF)
     baseline_personal: float = 0.5
     baseline_contexto: float = 0.5
+    enable_logging: bool = True  # <--- Ahora el constructor acepta este argumento
     mu_self: Optional[float] = None
     MAD_self: float = 0.0
     contexto: PuntoNeutroContexto = field(default_factory=PuntoNeutroContexto)
@@ -248,6 +253,8 @@ class SistemaCoherenciaMaxima:
                 accion_self = "Mantén el ritmo"
 
         resultado_ctx = self.contexto.update(L2_c, timestamp=ts)
+        
+        # Mapeo de nombres para compatibilidad con ajustar_mc_ci_por_coherencia en core.py
         resultado = {
             "timestamp": ts,
             "L2_self": L2_s,
@@ -256,13 +263,15 @@ class SistemaCoherenciaMaxima:
             "sigma_self": sigma_self,
             "deadband_self": deadband_self,
             "desviacion_self": desviacion_self,
-            "estado_self": estado_self,
+            "estado_self": {"estado": estado_self}, # Formato dict para core.py
             "accion_self": accion_self,
-            "estado_contexto": resultado_ctx["estado"],
+            "estado_contexto": {"estado": resultado_ctx["estado"]}, # Formato dict para core.py
             "accion_contexto": resultado_ctx["accion"],
             "mu_contexto": resultado_ctx["mu"],
             "sigma_contexto": resultado_ctx["sigma"],
             "deadband_contexto": resultado_ctx["deadband"],
+            "decision": {"accion": "CONTINUAR"}, # Placeholder para el protocolo
+            "coherencia_score": 1.0 - (abs(desviacion_self) / 2.0) # Score simplificado
         }
         self.history.append(resultado)
         return resultado

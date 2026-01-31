@@ -210,3 +210,119 @@ class PuntoNeutroContexto:
         else:
             return (f"CONTEXTO: L₂={L2:.2f} ≈ μ={mu:.2f}. "
                     f"Situación estable.")
+            # ============================================================
+# PUNTO DE EQUILIBRIO DINÁMICO (μ_self)
+# ============================================================
+
+@dataclass
+class PuntoEquilibrioSelfDinamico:
+    baseline_personal: float = 0.40
+    alpha_mad: float = CONF.ALPHA_MAD
+    ventana_historia: int = CONF.VENTANA_HISTORIA_HORAS
+
+    mu_self: float = field(init=False)
+    MAD_self: float = 0.0
+
+    proposito_actual: Optional[str] = None
+    urgencia: float = 0.0
+    contexto_demanda: float = 0.5
+    fase: str = "normal"
+
+    history_L2: List[float] = field(default_factory=list)
+    history_mu: List[float] = field(default_factory=list)
+    history_decisiones: List[Dict[str, Any]] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        self.mu_self = self.baseline_personal
+
+    @property
+    def baseline(self) -> float:
+        return self.baseline_personal
+
+    def set_estado(self, proposito: str, urgencia: float,
+                   contexto_demanda: float, fase: str) -> None:
+        self.proposito_actual = proposito
+        self.urgencia = clamp01(urgencia)
+        self.contexto_demanda = clamp01(contexto_demanda)
+        self.fase = fase
+        self._recalcular_mu_dinamico()
+
+    def _recalcular_mu_dinamico(self) -> None:
+        mu = self.baseline_personal
+
+        if self.fase == "sprint":
+            mu += 0.20 * self.urgencia
+        elif self.fase == "recuperacion":
+            mu -= 0.15
+
+        if self.contexto_demanda > 0.7:
+            mu += 0.15
+        elif self.contexto_demanda < 0.3:
+            mu -= 0.10
+
+        if len(self.history_L2) >= 3:
+            recent = self.history_L2[-self.ventana_historia:]
+            if recent:
+                avg_recent = sum(recent) / len(recent)
+                if avg_recent > 0.60:
+                    mu -= 0.15
+                elif avg_recent < 0.30:
+                    mu += 0.10
+
+        self.mu_self = clamp(mu, 0.10, 0.80)
+        self.history_mu.append(self.mu_self)
+
+    def _ajuste_proposito(self) -> float:
+        if self.fase == "sprint":
+            return 0.20 * self.urgencia
+        if self.fase == "recuperacion":
+            return -0.15
+        return 0.0
+
+    def _ajuste_contexto(self) -> float:
+        if self.contexto_demanda > 0.7:
+            return 0.15
+        if self.contexto_demanda < 0.3:
+            return -0.10
+        return 0.0
+
+    def _ajuste_historia(self) -> float:
+        if len(self.history_L2) < 3:
+            return 0.0
+        recent = self.history_L2[-self.ventana_historia:]
+        if not recent:
+            return 0.0
+        avg_recent = sum(recent) / len(recent)
+        if avg_recent > 0.60:
+            return -0.15
+        if avg_recent < 0.30:
+            return 0.10
+        return 0.0
+
+    def update(self, L2_self: float,
+               timestamp: Optional[float] = None) -> Dict[str, Any]:
+        L2_self = clamp01(L2_self)
+        ts = timestamp if timestamp is not None else time.time()
+        self.history_L2.append(L2_self)
+
+        self._recalcular_mu_dinamico()
+
+        deviation = L2_self - self.mu_self
+        self.MAD_self = update_mad(self.MAD_self, deviation, alpha=self.alpha_mad)
+        sigma = mad_to_sigma(self.MAD_self)
+        deadband = max(CONF.DELTA_ABS_SELF, CONF.K_SELF * sigma)
+
+        if L2_self >= CONF.BURNOUT_ABSOLUTO:
+            estado = "BURNOUT_INMINENTE"
+            accion = "DETENER AHORA - límite absoluto"
+            urgencia_nivel = "CRITICA"
+        elif L2_self > CONF.UMBRAL_CRITICO_SELF:
+            estado = "SELF_CRITICO"
+            accion = "DETENER o reducir drásticamente"
+            urgencia_nivel = "ALTA"
+        elif L2_self > self.mu_self + deadband:
+            estado = "TENSION_ALTA"
+            accion = f"Reducir ritmo - superas μ={self.mu_self:.2f}"
+            urgencia_nivel = "MEDIA"
+        elif L2_self < self.mu_
+

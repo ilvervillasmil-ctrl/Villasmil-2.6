@@ -209,8 +209,7 @@ class PuntoNeutroContexto:
                     f"Relaciones mejoran. Continúa.")
         else:
             return (f"CONTEXTO: L₂={L2:.2f} ≈ μ={mu:.2f}. "
-                    f"Situación estable.")
-# ============================================================
+                    f"Situación # ============================================================
 # SISTEMA DE COHERENCIA MÁXIMA
 # ============================================================
 
@@ -218,14 +217,29 @@ class PuntoNeutroContexto:
 class SistemaCoherenciaMaxima:
     """
     Sistema de Coherencia Máxima L2_self / L2_contexto.
-    ...
+
+    Mantiene el histórico básico y expone una API simple:
+    - registrar_medicion(...)
+    - get_estado_actual()
     """
     config: ConfiguracionEstandar = field(default_factory=lambda: CONF)
-    mu_self: Optional[float] = None
 
+    # Baselines iniciales que el core puede pasar como kwargs
+    baseline_personal: float = 0.5
+    baseline_contexto: float = 0.5
+
+    # Estado interno dinámico
+    mu_self: Optional[float] = None
     MAD_self: float = 0.0
     contexto: PuntoNeutroContexto = field(default_factory=PuntoNeutroContexto)
     history: List[Dict[str, Any]] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        # Si el core pasa baselines, los usamos para inicializar μ
+        if self.mu_self is None and self.baseline_personal is not None:
+            self.mu_self = clamp01(self.baseline_personal)
+        if self.contexto.mu_otros is None and self.baseline_contexto is not None:
+            self.contexto.mu_otros = clamp01(self.baseline_contexto)
 
     def registrar_medicion(
         self,

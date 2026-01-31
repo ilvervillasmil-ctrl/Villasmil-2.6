@@ -8,44 +8,39 @@ from villasmil_omega.human_l2.puntos import (
     compute_L2_contexto
 )
 
-def test_saturacion_l2_y_respuesta_core():
-    """Forzamos L2 al máximo para iluminar las estadísticas y bloqueos de Core."""
+def test_ataque_a_la_conformidad_l2():
+    """Forzamos a la L2 a salir de su zona de confort."""
     sistema = SistemaCoherenciaMaxima()
     
-    # 1. SATURACIÓN ESTADÍSTICA (Puntos 131-144): 
-    # Generamos una señal de 'ruido blanco' extremo.
-    # Esto obliga al sistema a calcular desviaciones máximas.
-    for i in range(30):
-        # Oscilación violenta entre los límites físicos
-        valor = 0.98 if i % 2 == 0 else 0.02
-        sistema.registrar_medicion({"bio": valor}, {"env": 1.0 - valor})
+    # 1. RUPTURA ESTADÍSTICA (Puntos 131-144)
+    # Enviamos valores que destruyen el promedio para forzar Sigma/MAD
+    for i in range(40):
+        # Alternamos entre el abismo y la cima
+        v = 0.001 if i % 2 == 0 else 0.999
+        sistema.registrar_medicion({"f": v}, {"e": 1.0 - v})
     
-    # 2. NO CONFORMIDAD DE L2 (Puntos 157-247):
-    # Forzamos estados de daño de contexto y riesgo acumulado.
-    for _ in range(15):
-        sistema.registrar_medicion({}, {"feedback_negativo": 1.0, "caos": 1.0})
+    # 2. NO CONFORMIDAD (Puntos 157-247)
+    # Inyectamos daño masivo al contexto para activar alertas
+    for _ in range(20):
+        sistema.registrar_medicion({}, {"caos": 10.0, "feedback_negativo": 10.0})
 
-    # 3. RESPUESTA DE CORE (Core 78-94):
-    # Inyectamos el resultado saturado en los motores de decisión.
-    # Probamos cada 'Missing' del reporte de core.py.
-    res_saturado = sistema.get_estado_actual()
+    # 3. PROPÓSITO CLARO EN CORE (Core 78-94)
+    # Tomamos el estado de caos y lo pasamos por todos los estados de colapso
+    caos_l2 = sistema.get_estado_actual()
     
-    estados_criticos = ["RIESGO_SELF", "SELF_CRITICO", "BURNOUT_INMINENTE"]
-    for est in estados_criticos:
-        res_saturado["estado_self"]["estado"] = est
-        res_saturado["decision"]["accion"] = "DETENER_INMEDIATO" if "BURNOUT" in est else "CONTINUAR"
+    for estado_critico in ["RIESGO_SELF", "SELF_CRITICO", "BURNOUT_INMINENTE"]:
+        caos_l2["estado_self"]["estado"] = estado_critico
+        # Forzamos la rama de bloqueo total
+        caos_l2["decision"]["accion"] = "DETENER_INMEDIATO"
         
-        # Aquí es donde 'apretamos' core.py
-        mc, ci = ajustar_mc_ci_por_coherencia(0.9, 0.9, res_saturado)
-        
-        if "DETENER" in res_saturado["decision"]["accion"]:
-            assert mc == 0.0 # L1 'como si nada', cumpliendo su protocolo
+        mc, ci = ajustar_mc_ci_por_coherencia(0.8, 0.8, caos_l2)
+        # L1 debe estar 'como si nada', cumpliendo su protocolo de apagado
+        assert mc == 0.0 and ci == 0.0
 
-def test_limpieza_final_l2():
-    """Cubre las líneas 66, 69 y la 282 (historial vacío)."""
+def test_limpieza_sombras_l2():
+    """Líneas 66, 69 y 281/282 (puntos muertos)."""
     assert compute_L2_self({}) == 0.05
     assert compute_L2_contexto({}) == 0.075
-    
     s = SistemaCoherenciaMaxima()
-    s.history = [] # Forzamos el estado None absoluto
+    s.history = []
     assert s.get_estado_actual() is None

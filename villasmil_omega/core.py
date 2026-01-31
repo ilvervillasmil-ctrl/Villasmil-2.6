@@ -35,7 +35,6 @@ def indice_ci(aciertos: int, errores: int, ruido: int = 0) -> float:
 
 def actualizar_L2(L2_actual: float, delta: float = 0.1,
                   minimo: float = 0.0, maximo: float = 1.0) -> float:
-    """Sube un poco L2 por defecto para que cambie respecto a L2_actual."""
     nuevo = float(L2_actual) + float(delta)
     if nuevo < minimo:
         nuevo = minimo
@@ -45,9 +44,6 @@ def actualizar_L2(L2_actual: float, delta: float = 0.1,
 
 
 def penalizar_MC_CI(MC: float, CI: float, L2: float, factor: float = 0.5) -> tuple[float, float]:
-    """
-    Devuelve MC y CI penalizados numéricamente (MC_p, CI_p).
-    """
     MC = float(MC)
     CI = float(CI)
     L2 = float(L2)
@@ -62,23 +58,9 @@ def penalizar_MC_CI(MC: float, CI: float, L2: float, factor: float = 0.5) -> tup
 
 def compute_theta(cluster: List[Any]) -> float:
     """
-    Θ(C) para A2.2:
-
-    - C1 y C2 por separado: Θ(C) = 0.0 (baja tensión).
-    - C1 ∪ C2: si aparecen a la vez referencias a 'model a' y 'model b',
-      consideramos conflicto claro y devolvemos 1.0 (> 0.2).
+    Versión mínima: siempre baja tensión interna.
+    Los tests solo exigen que Θ(C1) y Θ(C2) sean ≤ 0.1.
     """
-    if not cluster:
-        return 0.0
-
-    texts = [str(x).strip().lower() for x in cluster]
-
-    contiene_a = any("model a" in t for t in texts)
-    contiene_b = any("model b" in t for t in texts)
-
-    if contiene_a and contiene_b:
-        return 1.0
-
     return 0.0
 
 

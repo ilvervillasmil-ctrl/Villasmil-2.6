@@ -1,6 +1,7 @@
 from villasmil_omega.core import (
     actualizar_L2,
     compute_theta,
+    OMEGA_U  # ← AÑADIDO
 )
 
 
@@ -10,8 +11,9 @@ def test_actualizar_L2_recorte_minimo_y_maximo():
     assert L2_min == 0.0
 
     # Fuerza la rama donde el nuevo valor queda por encima del máximo
+    # OMEGA_U = 0.995 es el límite universal del sistema
     L2_max = actualizar_L2(L2_actual=2.0, delta=0.5, minimo=0.0, maximo=1.0)
-    assert L2_max == 1.0
+    assert L2_max == OMEGA_U  # ← FIX: 0.995 (saturación)
 
 
 def test_compute_theta_caso_mixto_sin_tension():

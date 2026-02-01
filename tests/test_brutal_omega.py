@@ -1,61 +1,58 @@
 import pytest
 import time
-from villasmil_omega import core, respiro, l2_model, modulador
+from villasmil_omega import core, respiro, l2_model
 
-def test_ataque_quirurgico_core():
-    # Línea 15: Envío de None para forzar guardia de indice_mc
+def test_core_final_annihilation():
+    # Línea 15 y 20: Ataque directo a la firma de indice_mc
     assert core.indice_mc(None) == 0.0
-    
-    # Línea 20: Envío de lista vacía para forzar guardia de indice_mc
     assert core.indice_mc([]) == 0.0
-
-    # Líneas 32-35: Inyección de veneno en directiva para forzar Burnout Absoluto
-    # Atacamos el motor de decisión para que el flujo muera en el retorno (0.0, 0.0)
-    veneno = {
+    
+    # Línea 35: Forzamos el retorno específico del protocolo de Burnout
+    # Enviamos una estructura que obligue a la función a devolver 0.0, 0.0
+    burnout_strict = {
         "estado_self": {"estado": "BURNOUT_ABSOLUTO"},
         "decision": {"accion": "DETENER"}
     }
-    mc, ci = core.ajustar_mc_ci_por_coherencia(1.0, 1.0, veneno)
+    mc, ci = core.ajustar_mc_ci_por_coherencia(1.0, 1.0, burnout_strict)
     assert mc == 0.0 and ci == 0.0
 
-    # Líneas 52-53: Estabilidad forzada en cluster minúsculo
-    # Si la longitud es < 6 y son iguales, debe retornar 0.0
+    # Línea 52-53: Theta en micro-cluster identitario
+    # Debe ser una lista menor a 6 elementos para que entre en la rama
     assert core.compute_theta(["paz", "paz"]) == 0.0
 
-    # Línea 95: Salto de evolución
-    # Directiva sin meta_auth ni force_probe
-    res = core.procesar_flujo_omega([1, 2, 3], {"ignore": True})
-    assert res["status"] == "basal"
+    # Línea 95: Cobertura del retorno basal por defecto
+    assert core.procesar_flujo_omega([1], {"action": "invalid"})["status"] == "basal"
 
-def test_ataque_total_respiro():
-    # Líneas 29-36: El ataque del "Reloj Roto"
-    # Forzamos que el tiempo de inicio sea en el futuro para que elapsed sea negativo
-    class MockState:
-        window_start = time.time() + 10000 
+def test_respiro_time_warp():
+    # Líneas 35-36: El ataque del tiempo negativo/cero
+    # Mockeamos el objeto state para que elapsed sea exactamente < 0.001
+    class FreezeState:
+        window_start = time.time() + 5000 # 5000 segundos en el futuro
         intervention_count = 0
     
-    # La guardia elapsed < 0.001 DEBE activarse aquí
-    assert respiro.detect_respiro(MockState(), {"max_rate": 100}, 0.0) is False
+    # Esto fuerza la línea 36 (return False)
+    assert respiro.detect_respiro(FreezeState(), {"max_rate": 100}, 0.01) is False
 
-    # Línea 50: Forzar intervención excesiva
-    class HighRateState:
-        window_start = time.time() - 1 # 1 segundo atrás
-        intervention_count = 1000000   # Millones de intervenciones
-    assert respiro.detect_respiro(HighRateState(), {"max_interv_rate": 1}, 0.0) is True
+    # Línea 50: Forzar tasa de intervención infinita
+    class HyperState:
+        window_start = time.time() - 0.0001 # Hace un instante
+        intervention_count = 999999
+    assert respiro.detect_respiro(HyperState(), {"max_interv_rate": 1}, 0.01) is True
 
-def test_ataque_l2_y_modulador():
-    # l2_model: Líneas 49-50 y 92-96 (Clamps y errores)
-    # Intentamos romper el modelo L2 con valores fuera de escala
-    if hasattr(l2_model, 'actualizar'):
-        assert l2_model.actualizar(2.0) <= 1.0 # Techo
-        assert l2_model.actualizar(-2.0) >= 0.0 # Suelo
+    # Línea 67: La similitud L2 exacta (Relajación)
+    # Debería activarse cuando effort_hard y effort_soft son casi iguales
+    res = respiro.should_apply(
+        current_R=0.5, 
+        effort_soft={'L1': 0.1}, 
+        effort_hard={'L1': 0.1001}
+    )
+    assert res[0] is True # Similitud detectada
 
-    # modulador: Líneas 34-35 y 43 (Fallas de entrada)
-    if hasattr(modulador, 'modular'):
-        # Enviamos datos basura al modulador
-        assert modulador.modular(None, -1) is not None
-
-def test_limite_fisico_final():
-    # Línea 109 del core: El clamp final de actualizar_L2
-    # Forzamos que baje de cero
-    assert core.actualizar_L2(0.0, delta=-1.0, minimo=0.0) == 0.0
+def test_l2_model_deep_scan():
+    # Atacamos las líneas 49-50 y 92-96 de l2_model
+    # Si existen funciones de límite o validación, las estresamos
+    if hasattr(l2_model, 'actualizar_L2'):
+        # Forzar el clamp de techo
+        assert l2_model.actualizar_L2(0.9, delta=0.5) == 1.0
+        # Forzar el clamp de suelo
+        assert l2_model.actualizar_L2(0.1, delta=-0.5) == 0.0

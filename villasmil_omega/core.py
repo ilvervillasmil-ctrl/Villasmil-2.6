@@ -1,10 +1,8 @@
 """
-Villasmil-Ω Core v2.6.4 - Sistema de Coherencia Máxima
+Villasmil-Ω Core v2.6.5 - Sistema de Coherencia Máxima
 Certificación: SIL-4 | Grado Militar | Anti-Crash Ingestion
-Cambios: Fusión de v2.6 y mejoras v2.6.x
-- Sanitización de inputs, saneamiento de NaN/Inf, parsing seguro en L4
-- Conserva suma_omega, actualizar_L2, run_core y compatibilidad hacia atrás
-- Mantiene L1..L4 y placeholders para capas superiores/operativas
+Cambios: Ajuste de prioridad L4/meta_auth + ingestión robusta, saneamiento NaN/Inf,
+         compatibilidad hacia atrás y preservación de lógica de búnkeres L1..L4.
 """
 import math
 from typing import List, Dict, Any, Tuple, Optional
@@ -78,7 +76,7 @@ def suma_omega(a: float, b: float) -> float:
         a_f = float(a)
         b_f = float(b)
     except Exception:
-        # Si no son convertibles, fallback a 0 + valor convertible
+        # Si no son convertibles, fallback a suma de los que sean convertibles
         vals = []
         for v in (a, b):
             try:
@@ -92,7 +90,6 @@ def suma_omega(a: float, b: float) -> float:
         return sum(vals)
 
     if not (math.isfinite(a_f) and math.isfinite(b_f)):
-        # retorna suma de los que sean finitos
         vals = [v for v in (a_f, b_f) if math.isfinite(v)]
         return sum(vals) if vals else 0.0
 
@@ -141,7 +138,7 @@ def calcular_raiz_ritmo(historial: List[float], centro: Optional[float] = None) 
 
 # ═══════════════════════════════════════════════════════════════════════════
 # L2 - MASA CRÍTICA (MC) Y COHERENCIA INTEGRADA (CI)
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════==
 def indice_mc(*args) -> float:
     """
     Masa Crítica (MC).
@@ -208,7 +205,7 @@ def ajustar_mc_ci_por_coherencia(mc_base: float, ci_base: float, res_coherencia:
 
 # ═══════════════════════════════════════════════════════════════════════════
 # L3 - TENSION GLOBAL (THETA) + compatibilidades
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════==
 def calcular_theta(cluster: List[Any]) -> float:
     """Detector de Tensión Global y Conflicto A2.2."""
     if not cluster:
@@ -235,7 +232,7 @@ def theta_for_two_clusters(c1: List[Any], c2: List[Any]) -> Dict[str, float]:
 
 # ═══════════════════════════════════════════════════════════════════════════
 # L4 - PROCESADOR OMEGA (INGESTION ROBUSTA + DECISIONES)
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════==
 def procesar_flujo_omega(data: List[Any], directiva: Dict[str, Any]) -> Dict[str, Any]:
     """
     Integración total de búnkeres con ingestión robusta.
@@ -244,6 +241,7 @@ def procesar_flujo_omega(data: List[Any], directiva: Dict[str, Any]) -> Dict[str
     - Clampa los datos a escala [0,1] para L3.
     - Mantiene compatibilidad con directivas meta/force del original.
     """
+    # 1) Ingesta y sanitización
     num_data: List[float] = []
     for x in data:
         try:
@@ -254,7 +252,34 @@ def procesar_flujo_omega(data: List[Any], directiva: Dict[str, Any]) -> Dict[str
         except Exception:
             continue
 
-    # L1: Invariancia
+    # 2) Calcular ritmo temprano para permitir overrides por meta_auth cuando aplique
+    ritmo = calcular_raiz_ritmo(num_data)
+
+    # 3) Interpretar directiva
+    is_meta = isinstance(directiva, dict) and directiva.get('meta_auth') == "active_meta_coherence"
+    is_force = isinstance(directiva, dict) and directiva.get('action') == "force_probe"
+
+    # 4) Force probe siempre puede forzar path evolving (intencional)
+    if is_force:
+        return {
+            "status": "evolving",
+            "path": "deep_evolution",
+            "auth_level": "force_probe",
+            "processed_count": len(data),
+            "invariante": False,
+            "timestamp": directiva.get('timestamp')
+        }
+
+    # 5) Meta auth puede sobrepasar L1 si el ritmo es suficientemente alto
+    if is_meta and ritmo >= BURNOUT_THRESHOLD:
+        return {
+            "status": "evolving",
+            "path": "deep_evolution",
+            "ritmo_omega": ritmo,
+            "diagnostico": "ESTABLE"
+        }
+
+    # 6) Si no se cumple override, verificar invariancia (L1) y bloquear si paz
     if num_data and verificar_invariancia(num_data):
         return {
             "status": "basal",
@@ -264,30 +289,7 @@ def procesar_flujo_omega(data: List[Any], directiva: Dict[str, Any]) -> Dict[str
             "energia_ahorrada": True
         }
 
-    # L2: Verificación de autorizaciones (mantener comportamiento original)
-    is_meta = isinstance(directiva, dict) and directiva.get('meta_auth') == "active_meta_coherence"
-    is_force = isinstance(directiva, dict) and directiva.get('action') == "force_probe"
-
-    if is_meta or is_force:
-        return {
-            "status": "evolving",
-            "path": "deep_evolution",
-            "auth_level": "meta_v2.6",
-            "processed_count": len(data),
-            "invariante": False,
-            "timestamp": directiva.get('timestamp')
-        }
-
-    # L3: Ritmo (metronomo) y L4: decisiones si no hay meta_auth
-    ritmo = calcular_raiz_ritmo(num_data)
-    if is_meta and ritmo >= BURNOUT_THRESHOLD:
-        return {
-            "status": "evolving",
-            "path": "deep_evolution",
-            "ritmo_omega": ritmo,
-            "diagnostico": "ESTABLE"
-        }
-
+    # 7) Caso por defecto: retornar diagnostico con ritmo calculado
     return {
         "status": "basal",
         "path": "safety_lock",
@@ -295,7 +297,7 @@ def procesar_flujo_omega(data: List[Any], directiva: Dict[str, Any]) -> Dict[str
         "diagnostico": "ARRITMIA" if ritmo < BURNOUT_THRESHOLD else "SIN_AUTH"
     }
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════���═════════════════════════════════════════════════════
 # DINÁMICA DE CAPAS - ACTUALIZACIÓN Y PENALIZACIÓN (funciones originales)
 # ═════════════════════════════════════════════════════════════════════════==
 def actualizar_L2(
@@ -325,14 +327,14 @@ def penalizar_MC_CI(MC: float, CI: float, L2: float, factor: float = 0.5) -> Tup
     p = L2 * factor
     return clamp(MC - p, 0.0, C_MAX), clamp(CI - p, 0.0, C_MAX)
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════���══════════════════════════════════════════════==
 # RUN / METADATA / COMPATIBILIDAD
 # ═════════════════════════════════════════════════════════════════════════==
 def run_core() -> None:
     """Hook de sanity-check / compatibilidad (no destructivo)."""
     return None
 
-__version__ = "2.6.4"
+__version__ = "2.6.5"
 __certification__ = "SIL-4"
 __coverage__ = "93%"
 __status__ = "CERTIFICADO_CON_RITMO"

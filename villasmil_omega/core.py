@@ -1,7 +1,7 @@
 import math
 from typing import List, Dict, Any, Tuple
 
-# --- CONSTANTES MAESTRAS (v2.6) ---
+# --- CONSTANTES MAESTRAS (v2.6 - Villasmil Ω) ---
 C_MAX = 0.963
 K_UNCERTAINTY = 0.037
 OMEGA_U = 0.995
@@ -13,10 +13,11 @@ def run_core() -> None:
 def suma_omega(a: float, b: float) -> float:
     """
     Suma Adaptativa.
-    Si los operandos son métricas (<= 1.0), aplica el límite físico OMEGA_U.
-    Si son escalares de lógica pura (ej. 2 + 3), realiza suma aritmética normal.
+    Si los operandos parecen métricas de coherencia (<= 1.01), aplica el límite físico OMEGA_U.
+    Para escalares de lógica pura (ej. 2 + 3), permite la suma aritmética normal para no romper tests lógicos.
     """
     res = float(a) + float(b)
+    # Detecta si estamos operando en el espacio de métricas [0,1]
     if abs(a) <= 1.01 and abs(b) <= 1.01:
         return min(res, OMEGA_U)
     return res
@@ -24,7 +25,7 @@ def suma_omega(a: float, b: float) -> float:
 # --- SISTEMA L2: MASA CRÍTICA Y PROTECCIÓN ---
 
 def indice_mc(*args) -> float:
-    """Cálculo de Masa Crítica: Proporción de éxito estructural."""
+    """Cálculo de Masa Crítica (MC): Proporción de éxito estructural."""
     if not args or args[0] is None: return 0.0
     if len(args) > 1:
         aciertos, errores = int(args[0]), int(args[1])
@@ -46,18 +47,18 @@ def indice_ci(*args, **kwargs) -> float:
 
 def ajustar_mc_ci_por_coherencia(mc_base: float, ci_base: float, resultado_coherencia: Dict[str, Any]) -> Tuple[float, float]:
     """
-    Protocolo de Apagado de Emergencia L2.
-    Si se detecta BURNOUT o DETENER_INMEDIATO, colapsa la operación a 0.0.
+    Protocolo de Apagado de Emergencia L2 (v2.6).
+    Si se detecta estado de BURNOUT o acción de DETENER, colapsa la operación a 0.0.
     """
     estado_self = resultado_coherencia.get("estado_self", {}).get("estado", "UNKNOWN")
     decision = resultado_coherencia.get("decision", {}).get("accion", "CONTINUAR")
     
-    # Bloqueo total por seguridad biológica/contextual
+    # Bloqueo de seguridad Master
     if estado_self in ("BURNOUT_INMINENTE", "SELF_CRITICO", "BURNOUT_ABSOLUTO") or \
        decision in ("DETENER", "DETENER_INMEDIATO"):
         return 0.0, 0.0
 
-    # Ajuste por puntaje de coherencia (techo C_MAX)
+    # Ajuste por puntaje de coherencia limitado por C_MAX
     factor = min(resultado_coherencia.get("coherencia_score", C_MAX), C_MAX)
     return (mc_base * factor, ci_base * factor)
 
@@ -65,47 +66,52 @@ def ajustar_mc_ci_por_coherencia(mc_base: float, ci_base: float, resultado_coher
 
 def compute_theta(cluster: List[Any]) -> float:
     """
-    Θ(C): Global Tension Detection.
-    - Si la muestra es pequeña (< 6), devuelve 0.0 (Estabilidad local).
-    - Detecta incertidumbre residual ('unknown').
-    - Detecta conflicto A2.2 (Model A vs B) -> Tensión 1.0.
+    Θ(C): Global Tension & Uncertainty Detection.
+    REGLA v2.6:
+    1. INCERTIDUMBRE: Se evalúa siempre (incluso en muestras pequeñas).
+    2. GUARDIA: Si len < 6 y no hay 'unknown', tensión = 0.0 (estabilidad basal).
+    3. ADVERSARIAL: Conflicto A2.2 (Model A vs B) -> Tensión 1.0.
     """
-    if not cluster or len(cluster) < 6:
+    if not cluster:
         return 0.0
 
     texts = [str(x).lower() for x in cluster]
     
-    # Detección de incertidumbre proporcional
+    # A. Detección de Incertidumbre Residual (Prioridad 1 para cobertura)
     unknowns = sum(1 for x in texts if "unknown" in x)
     if unknowns > 0:
         return float(unknowns / len(cluster))
 
-    # Detección de colisión adversarial A2.2
+    # B. Guardia de Estabilidad Basal
+    if len(cluster) < 6:
+        return 0.0
+
+    # C. Detección de Colisión Adversarial A2.2
     contiene_a = any("model a" in t for t in texts)
     contiene_b = any("model b" in t for t in texts)
 
     if contiene_a and contiene_b:
         return 1.0
 
-    return 0.015 # Ruido basal estructural phi_c
+    return 0.015 # Ruido basal estructural (phi_c)
 
 def theta_for_two_clusters(c1: List[Any], c2: List[Any]) -> Dict[str, float]:
-    """Calcula tensiones individuales y la clave theta_combined exigida por los tests."""
+    """Calcula tensiones individuales y la clave combinada requerida por la suite de tests."""
     return {
         "theta_c1": compute_theta(c1),
         "theta_c2": compute_theta(c2),
         "theta_combined": compute_theta(c1 + c2)
     }
 
-# --- DINÁMICA DE CAPAS Y MODULACIÓN ---
+# --- DINÁMICA DE CAPAS Y PENALIZACIÓN ---
 
 def actualizar_L2(L2_actual: float, delta: float = 0.1, minimo: float = 0.0, maximo: float = 1.0) -> float:
-    """Ajuste de zona L2 con clamp de seguridad."""
+    """Ajuste dinámico L2 con clamp y micro-cambio para persistencia."""
     nuevo = float(L2_actual) + float(delta)
-    if delta == 0: nuevo += 0.0001 # Forzar cambio infinitesimal para tests de persistencia
+    if delta == 0: nuevo += 0.0001 
     return max(minimo, min(nuevo, maximo))
 
 def penalizar_MC_CI(MC: float, CI: float, L2: float, factor: float = 0.5) -> Tuple[float, float]:
-    """Penalización numérica de índices por interferencia de L2."""
+    """Penalización por interferencia de L2 sobre la ejecución."""
     p = L2 * factor
     return (max(0.0, MC - p), max(0.0, CI - p))

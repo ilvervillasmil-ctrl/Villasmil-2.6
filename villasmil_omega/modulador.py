@@ -2,73 +2,65 @@ import math
 
 class ModuladorAD:
     """
-    MODULADOR DE AJUSTE DINÁMICO (MAD) v2.6
-    Anclado en L4 como herramienta de Meta-Coherencia.
+    Modulador de Adaptación Dinámica (L4).
+    Controla la exploración estratégica respetando la inercia del sistema (Slew Rate).
     """
-    def __init__(self, **kwargs):
-        self.role = "system_adjustment_tool"
-        self.meta_auth = "active_meta_coherence"
+    def __init__(self, alpha=0.1, roi_low=0.2, rigidity_high=0.7, base_factor=0.2):
+        self.alpha = alpha
+        self.roi_low = roi_low
+        self.rigidity_high = rigidity_high
+        self.factor_exploration = base_factor
         
-        # Parámetros de Control
-        self.factor_exploration = kwargs.get('base_factor', 0.2)
-        self.r_thresh = kwargs.get('base_r_thresh', 0.95)
-        
-        # Límites de Seguridad y Agilidad (Slew Rate)
-        self.limits = {
-            'factor': (0.0, 0.95),
-            'r_thresh': (0.80, 0.995),
-            'max_delta_f': 0.4,  # Respuesta rápida para superar bloqueos
-            'max_delta_r': 0.05
-        }
-        
-        # Memoria del Sistema (EWMA)
-        self.alpha = kwargs.get('alpha', 0.1)
-        self.roi_s = 0.5
-        self.rigidez_s = 0.5
+        # Parámetros de Seguridad v2.6
+        self.max_slew_rate = 0.15  # Máximo cambio permitido por paso
+        self.abs_max_anchored = 0.35 # Techo cuando hay anclaje severo en L4
+        self.base_factor = base_factor
 
-    def update(self, metrics, anchoring=None):
-        # 1. Suavizado de telemetría
+    def update(self, metrics: dict, anchoring: dict = None) -> dict:
+        """
+        Calcula el nuevo factor de exploración aplicando PPR y Slew Rate.
+        """
+        # 1. Determinar el Target según métricas de beneficio/costo
         benefit = metrics.get('benefit', 0.5)
-        cost = metrics.get('cost', 0.1)
-        diversity = metrics.get('diversity_index', 0.5)
+        cost = metrics.get('cost', 0.5)
         
-        self.roi_s = (self.alpha * (benefit / (cost + 1e-6))) + (1 - self.alpha) * self.roi_s
-        self.rigidez_s = (self.alpha * (1.0 - diversity)) + (1 - self.alpha) * self.rigidez_s
+        # El target ideal según PPR (Proactive Refinement)
+        target = (benefit - cost + self.base_factor)
         
-        severity = anchoring.get('severity', 0.0) if anchoring else 0.0
+        # 2. Gestión de Anclaje (Severidad L4)
+        is_anchored = False
+        if anchoring and anchoring.get('is_anchored'):
+            is_anchored = True
+            # El anclaje severo empuja el target hacia arriba (intento de ruptura)
+            if anchoring.get('severity', 0) > 0.8:
+                target = 0.6  # Intento de salto agresivo
         
-        # 2. Lógica de Meta-Coherencia (Cálculo de Targets)
-        # Si hay rigidez o anclaje excesivo, disparamos force_probe
-        if self.roi_s < 0.3 or self.rigidez_s > 0.7 or severity > 0.8:
-            t_factor = self.limits['factor'][1]
-            t_r_thresh = self.limits['r_thresh'][0]
-            action = "force_probe"
+        # 3. Aplicación estricta de SLEW RATE (Inercia)
+        # No permitimos que el factor cambie más de 0.15 respecto al actual
+        delta = target - self.factor_exploration
+        
+        if abs(delta) > self.max_slew_rate:
+            if delta > 0:
+                self.factor_exploration += self.max_slew_rate
+            else:
+                self.factor_exploration -= self.max_slew_rate
         else:
-            t_factor = 0.2
-            t_r_thresh = 0.95
-            action = "monitor"
+            self.factor_exploration = target
 
-        # 3. Aplicación de Rampa Controlada
-        self.factor_exploration = self._step_limit(
-            self.factor_exploration, t_factor, 
-            self.limits['max_delta_f'], self.limits['factor']
-        )
-        self.r_thresh = self._step_limit(
-            self.r_thresh, t_r_thresh, 
-            self.limits['max_delta_r'], self.limits['r_thresh']
-        )
+        # 4. Capa de Seguridad Master (Clamping)
+        # Si hay anclaje, el techo absoluto es 0.35 para proteger la coherencia
+        if is_anchored:
+            self.factor_exploration = min(self.factor_exploration, self.abs_max_anchored)
+        
+        # Asegurar rango [0, 1]
+        self.factor_exploration = max(0.0, min(self.factor_exploration, 1.0))
 
         return {
-            "action": action,
+            "action": "adjust",
             "factor_exploration": round(self.factor_exploration, 2),
-            "r_thresh": round(self.r_thresh, 3),
-            "role": self.role,
-            "meta_auth": self.meta_auth,
-            "reason": f"Ajuste por {'rigidez' if action == 'force_probe' else 'estabilidad'}"
+            "meta_auth": "active_meta_coherence" if self.factor_exploration > 0.3 else "basal",
+            "reason": "Slew rate limited transition" if abs(delta) > self.max_slew_rate else "Target reached"
         }
 
-    def _step_limit(self, current, target, max_delta, bounds):
-        target = max(bounds[0], min(target, bounds[1]))
-        delta = target - current
-        step = math.copysign(min(abs(delta), max_delta), delta)
-        return current + step
+    def get_current_state(self):
+        return self.factor_exploration

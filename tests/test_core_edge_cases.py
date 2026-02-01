@@ -20,14 +20,11 @@ def test_indice_ci_kwargs_and_zero_total():
     assert core.indice_ci(0,0,0) == 0.0
 
 def test_ajustar_mc_ci_por_coherencia_critical_state():
-    mc, ci = core.ajustar_mc_ci_por_coherencia(
-        0.8, 0.8,
-        {"estado_self": {"estado": "BURNOUT_ABSOLUTO"}, "decision": {"accion": "CONTINUAR"}}
-    )
+    mc, ci = core.ajustar_mc_ci_por_coherencia(0.8, 0.8, {"estado_self": {"estado": "BURNOUT_ABSOLUTO"}, "decision": {"accion": "CONTINUAR"}})
     assert mc == 0.0 and ci == 0.0
 
 def test_procesar_flujo_omega_parsing_numeric_strings_and_nan_inf():
-    data = ["0.2", 0.4, "nope", float('nan'), "1.1", "-0.5", "0.0"]  # includes numeric strings and bad values
+    data = [ "0.2", 0.4, "nope", float('nan'), "1.1", "-0.5", "0.0" ]  # includes numeric strings and bad values
     res = core.procesar_flujo_omega(data, directiva={})
     assert isinstance(res, dict)
     ritmo = res.get("ritmo_omega")

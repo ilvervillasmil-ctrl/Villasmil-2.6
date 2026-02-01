@@ -1,8 +1,8 @@
 """
-Villasmil-Ω Core v2.6.5 - Sistema de Coherencia Máxima
+Villasmil-Ω Core v2.6.6 - Sistema de Coherencia Máxima
 Certificación: SIL-4 | Grado Militar | Anti-Crash Ingestion
-Cambios: Ajuste de prioridad L4/meta_auth + ingestión robusta, saneamiento NaN/Inf,
-         compatibilidad hacia atrás y preservación de lógica de búnkeres L1..L4.
+Cambios: Restauración del orden L1 -> L2 (invariancia antes de meta/force),
+         ingestión robusta, saneamiento NaN/Inf, compatibilidad hacia atrás.
 """
 import math
 from typing import List, Dict, Any, Tuple, Optional
@@ -16,7 +16,7 @@ except Exception:
         def __init__(self, **kwargs): pass
         def es_invariante(self, h): return False
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ══════���════════════════════════════════════════════════════════════════════
 # CONSTANTES MAESTRAS
 # ═════════════════════════════════════════════════════════════════════════==
 C_MAX = 0.963              # Techo operativo
@@ -203,7 +203,7 @@ def ajustar_mc_ci_por_coherencia(mc_base: float, ci_base: float, res_coherencia:
 
     return clamp(mc_base * factor, 0.0, C_MAX), clamp(ci_base * factor, 0.0, C_MAX)
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════��==
 # L3 - TENSION GLOBAL (THETA) + compatibilidades
 # ═════════════════════════════════════════════════════════════════════════==
 def calcular_theta(cluster: List[Any]) -> float:
@@ -230,9 +230,9 @@ def theta_for_two_clusters(c1: List[Any], c2: List[Any]) -> Dict[str, float]:
         "theta_combined": compute_theta(c1 + c2)
     }
 
-# ═══════════════════════════════════════════════════════════════════════════
-# L4 - PROCESADOR OMEGA (INGESTION ROBUSTA + DECISIONES)
 # ═════════════════════════════════════════════════════════════════════════==
+# L4 - PROCESADOR OMEGA (INGESTION ROBUSTA + DECISIONES)
+# ══════════��══════════════════════════════════════════════════════════════==
 def procesar_flujo_omega(data: List[Any], directiva: Dict[str, Any]) -> Dict[str, Any]:
     """
     Integración total de búnkeres con ingestión robusta.
@@ -252,34 +252,7 @@ def procesar_flujo_omega(data: List[Any], directiva: Dict[str, Any]) -> Dict[str
         except Exception:
             continue
 
-    # 2) Calcular ritmo temprano para permitir overrides por meta_auth cuando aplique
-    ritmo = calcular_raiz_ritmo(num_data)
-
-    # 3) Interpretar directiva
-    is_meta = isinstance(directiva, dict) and directiva.get('meta_auth') == "active_meta_coherence"
-    is_force = isinstance(directiva, dict) and directiva.get('action') == "force_probe"
-
-    # 4) Force probe siempre puede forzar path evolving (intencional)
-    if is_force:
-        return {
-            "status": "evolving",
-            "path": "deep_evolution",
-            "auth_level": "force_probe",
-            "processed_count": len(data),
-            "invariante": False,
-            "timestamp": directiva.get('timestamp')
-        }
-
-    # 5) Meta auth puede sobrepasar L1 si el ritmo es suficientemente alto
-    if is_meta and ritmo >= BURNOUT_THRESHOLD:
-        return {
-            "status": "evolving",
-            "path": "deep_evolution",
-            "ritmo_omega": ritmo,
-            "diagnostico": "ESTABLE"
-        }
-
-    # 6) Si no se cumple override, verificar invariancia (L1) y bloquear si paz
+    # 2) Verificar invariancia (L1) PRIMERO — si hay paz, bloquear procesamiento
     if num_data and verificar_invariancia(num_data):
         return {
             "status": "basal",
@@ -289,7 +262,26 @@ def procesar_flujo_omega(data: List[Any], directiva: Dict[str, Any]) -> Dict[str
             "energia_ahorrada": True
         }
 
-    # 7) Caso por defecto: retornar diagnostico con ritmo calculado
+    # 3) Interpretar directiva
+    is_meta = isinstance(directiva, dict) and directiva.get('meta_auth') == "active_meta_coherence"
+    is_force = isinstance(directiva, dict) and directiva.get('action') == "force_probe"
+
+    # 4) Si hay meta o force → abrir evolving (autorización meta)
+    if is_meta or is_force:
+        # calcular ritmo para incluir en metadata opcional
+        ritmo = calcular_raiz_ritmo(num_data) if num_data else OMEGA_U
+        return {
+            "status": "evolving",
+            "path": "deep_evolution",
+            "auth_level": "meta_v2.6",
+            "processed_count": len(data),
+            "invariante": False,
+            "timestamp": directiva.get('timestamp'),
+            "ritmo_omega": ritmo
+        }
+
+    # 5) Si no hay override, calcular ritmo y devolver diagnostico seguro
+    ritmo = calcular_raiz_ritmo(num_data)
     return {
         "status": "basal",
         "path": "safety_lock",
@@ -297,7 +289,7 @@ def procesar_flujo_omega(data: List[Any], directiva: Dict[str, Any]) -> Dict[str
         "diagnostico": "ARRITMIA" if ritmo < BURNOUT_THRESHOLD else "SIN_AUTH"
     }
 
-# ═════════════════════���═════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════==
 # DINÁMICA DE CAPAS - ACTUALIZACIÓN Y PENALIZACIÓN (funciones originales)
 # ═════════════════════════════════════════════════════════════════════════==
 def actualizar_L2(
@@ -327,14 +319,14 @@ def penalizar_MC_CI(MC: float, CI: float, L2: float, factor: float = 0.5) -> Tup
     p = L2 * factor
     return clamp(MC - p, 0.0, C_MAX), clamp(CI - p, 0.0, C_MAX)
 
-# ══════════════════════════���══════════════════════════════════════════════==
+# ═════════════════════════════════════════════════════════════════════════==
 # RUN / METADATA / COMPATIBILIDAD
 # ═════════════════════════════════════════════════════════════════════════==
 def run_core() -> None:
     """Hook de sanity-check / compatibilidad (no destructivo)."""
     return None
 
-__version__ = "2.6.5"
+__version__ = "2.6.6"
 __certification__ = "SIL-4"
 __coverage__ = "93%"
 __status__ = "CERTIFICADO_CON_RITMO"

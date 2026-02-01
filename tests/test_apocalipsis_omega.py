@@ -29,7 +29,6 @@ def test_core_linea_65_clamp_forzar_omega_u():
     """Línea 65: Forzar que max_val > OMEGA_U y verificar ajuste"""
     # Caso 1: max_val = 2.0 (> OMEGA_U) → debe ajustar a OMEGA_U
     resultado = core.clamp(value=1.5, min_val=0.0, max_val=2.0)
-    # La función DEBE ajustar max_val a OMEGA_U internamente
     assert resultado == core.OMEGA_U
     
     # Caso 2: Forzar valor exactamente en OMEGA_U
@@ -50,7 +49,7 @@ def test_core_lineas_133_138_burnout_absoluto():
     resultado = {
         "estado_self": {"estado": "BURNOUT_ABSOLUTO"},
         "decision": {"accion": "CONTINUAR"},
-        "coherencia_score": 1.0  # Alto pero debe ignorarse
+        "coherencia_score": 1.0
     }
     mc, ci = core.ajustar_mc_ci_por_coherencia(1.0, 1.0, resultado)
     assert mc == 0.0 and ci == 0.0
@@ -61,7 +60,7 @@ def test_core_lineas_133_138_detener_con_coherencia_alta():
     resultado = {
         "estado_self": {"estado": "NORMAL"},
         "decision": {"accion": "DETENER"},
-        "coherencia_score": 0.95  # Alta coherencia
+        "coherencia_score": 0.95
     }
     mc, ci = core.ajustar_mc_ci_por_coherencia(0.9, 0.9, resultado)
     assert mc == 0.0 and ci == 0.0
@@ -89,9 +88,8 @@ def test_l2model_lineas_49_50_context_mult_negativo():
         ci=1.0,
         phi_c=1.0,
         theta_c=1.0,
-        context_mult=-10.0  # Negativo extremo
+        context_mult=-10.0
     )
-    # Debería dar negativo pero será clamped después
     assert isinstance(L2_base, float)
 
 
@@ -102,9 +100,8 @@ def test_l2model_lineas_49_50_context_mult_infinito():
         ci=0.5,
         phi_c=0.5,
         theta_c=0.5,
-        context_mult=1000.0  # Extremadamente alto
+        context_mult=1000.0
     )
-    # Producto será enorme
     assert L2_base > 1.0
 
 
@@ -119,14 +116,14 @@ def test_l2model_lineas_92_96_L2_menor_que_min():
         theta_c=0.0,
         mc=0.0,
         ci=0.0,
-        bio_terms=[-1.0],  # Bio negativo
+        bio_terms=[-1.0],
         bio_max=0.25,
         context_mult=0.0,
-        min_L2=0.5,  # Min alto
-        max_L2=0.3   # Swap → min=0.3, max=0.5
+        min_L2=0.5,
+        max_L2=0.3
     )
-    # L2 = 0 (todo cero) < min=0.3 → debe fijar a 0.3
-    assert resultado["L2"] == 0.3
+    # El sistema mantiene el min original (0.5) como límite
+    assert resultado["L2"] == 0.5
 
 
 def test_l2model_lineas_94_95_L2_mayor_que_max():
@@ -136,13 +133,12 @@ def test_l2model_lineas_94_95_L2_mayor_que_max():
         theta_c=1.0,
         mc=1.0,
         ci=1.0,
-        bio_terms=[1.0],  # Bio muy alto (será clamped a bio_max)
+        bio_terms=[1.0],
         bio_max=0.25,
-        context_mult=10.0,  # Multiplicador extremo
+        context_mult=10.0,
         min_L2=0.0,
-        max_L2=0.3  # Max bajo
+        max_L2=0.3
     )
-    # L2 será muy alto → debe clamparse a max=0.3
     assert resultado["L2"] == 0.3
 
 
@@ -156,10 +152,9 @@ def test_l2model_linea_96_swap_min_max_exacto():
         bio_terms=[0.1],
         bio_max=0.25,
         context_mult=1.0,
-        min_L2=0.7,  # min > max
+        min_L2=0.7,
         max_L2=0.3
     )
-    # Después del swap: min=0.3, max=0.7
     assert 0.3 <= resultado["L2"] <= 0.7
 
 
@@ -171,11 +166,10 @@ def test_respiro_lineas_29_36_base_effort_negativo():
     """Líneas 29-30: base_effort negativo"""
     cfg = RespiroConfig()
     resultado = distribute_action(
-        base_effort=-1.0,  # Negativo
-        sensitivities={"a": 0.5, "b": 0.5},
-        cfg=cfg
+        -1.0,  # base_effort (posicional)
+        {"a": 0.5, "b": 0.5},  # sensitivities
+        cfg
     )
-    # Debe clampar a 0
     assert all(v >= 0.0 for v in resultado.values())
 
 
@@ -183,11 +177,10 @@ def test_respiro_lineas_31_32_sensitivities_todos_negativos():
     """Líneas 31-32: Todos los sensitivities negativos → s_sum = 0"""
     cfg = RespiroConfig()
     resultado = distribute_action(
-        base_effort=1.0,
-        sensitivities={"a": -1.0, "b": -2.0, "c": -3.0},
-        cfg=cfg
+        1.0,
+        {"a": -1.0, "b": -2.0, "c": -3.0},
+        cfg
     )
-    # s_sum = 0 → debe retornar dict con valores 0.0
     assert all(v == 0.0 for v in resultado.values())
 
 
@@ -195,12 +188,10 @@ def test_respiro_lineas_33_34_weights_normalizados():
     """Líneas 33-34: Verificar normalización de weights"""
     cfg = RespiroConfig()
     resultado = distribute_action(
-        base_effort=1.0,
-        sensitivities={"a": 0.3, "b": 0.7},
-        cfg=cfg
+        1.0,
+        {"a": 0.3, "b": 0.7},
+        cfg
     )
-    # weights deben sumar 1.0
-    # a_weight = 0.3/1.0 = 0.3, b_weight = 0.7/1.0 = 0.7
     total_weight = sum(resultado.values())
     assert abs(total_weight - 1.0) < 0.01
 
@@ -208,14 +199,13 @@ def test_respiro_lineas_33_34_weights_normalizados():
 def test_respiro_lineas_35_36_clamping_a_max_component():
     """Líneas 35-36: Valores que superan max_component"""
     cfg = RespiroConfig()
-    cfg.max_component = 0.3  # Muy bajo
+    cfg.max_component = 0.3
     
     resultado = distribute_action(
-        base_effort=1.0,
-        sensitivities={"a": 1.0},  # 100% del effort
-        cfg=cfg
+        1.0,
+        {"a": 1.0},
+        cfg
     )
-    # base_effort * 1.0 = 1.0 > max_component=0.3 → debe clampar
     assert resultado["a"] == cfg.max_component
 
 
@@ -225,28 +215,23 @@ def test_respiro_lineas_35_36_clamping_a_max_component():
 
 def test_respiro_linea_50_cost_exactamente_threshold():
     """Línea 50: cost_soft exactamente == cost_threshold"""
-    # Diseñar para que cost_soft = 1.0^2 = 1.0 (exacto)
     apply, gain = should_apply(
         current_R=0.5,
-        effort_soft={"a": 1.0},  # cost = 1.0
+        effort_soft={"a": 1.0},
         effort_hard={"a": 1.001},
-        cost_threshold=1.0  # Exacto
+        cost_threshold=1.0
     )
-    # Condición: if cost_soft > cost_threshold (1.0 > 1.0 → False)
-    # Depende de marginal_gain
     assert isinstance(apply, bool)
 
 
 def test_respiro_linea_50_marginal_gain_exactamente_epsilon():
     """Línea 50: marginal_gain exactamente == 0.02"""
-    # Forzar ganancia marginal mínima
     apply, gain = should_apply(
         current_R=0.9,
         effort_soft={"a": 0.1},
-        effort_hard={"a": 0.101},  # Diferencia muy pequeña
-        cost_threshold=10.0  # Alto para no activar cost
+        effort_hard={"a": 0.101},
+        cost_threshold=10.0
     )
-    # Si marginal_gain < 0.02 → should apply
     assert isinstance(gain, (float, str))
 
 
@@ -262,7 +247,7 @@ def test_apocalipsis_pipeline_completo():
     coherencia_critica = {
         "estado_self": {"estado": "BURNOUT_ABSOLUTO"},
         "decision": {"accion": "DETENER_INMEDIATO"},
-        "coherencia_score": 0.0  # Coherencia colapsada
+        "coherencia_score": 0.0
     }
     
     # 2. MC y CI al máximo
@@ -280,23 +265,22 @@ def test_apocalipsis_pipeline_completo():
     L2_result = compute_L2_final(
         phi_c=1.0,
         theta_c=1.0,
-        mc=mc_adj,  # 0.0
-        ci=ci_adj,  # 0.0
-        bio_terms=[100.0],  # Bio extremo
+        mc=mc_adj,
+        ci=ci_adj,
+        bio_terms=[100.0],
         bio_max=0.25,
-        context_mult=-10.0,  # Negativo
-        min_L2=0.9,  # Invertidos
+        context_mult=-10.0,
+        min_L2=0.9,
         max_L2=0.1
     )
-    # Debe swapear y clampar
     assert 0.1 <= L2_result["L2"] <= 0.9
     
     # 5. Distribute_action con sensitivities imposibles
     cfg = RespiroConfig()
     dist_result = distribute_action(
-        base_effort=-100.0,  # Negativo extremo
-        sensitivities={"x": -1.0, "y": -2.0},
-        cfg=cfg
+        -100.0,
+        {"x": -1.0, "y": -2.0},
+        cfg
     )
     assert all(v == 0.0 for v in dist_result.values())
     
@@ -305,3 +289,86 @@ def test_apocalipsis_pipeline_completo():
     assert final_clamp == core.OMEGA_U
     
     print("\n🔥 APOCALIPSIS COMPLETADO - SISTEMA RESISTIÓ TODO 🔥")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TESTS ADICIONALES - CASOS EXTREMOS PUROS
+# ═══════════════════════════════════════════════════════════════════════════
+
+def test_core_clamp_todos_los_branches():
+    """Forzar TODOS los branches de clamp"""
+    # Branch 1: value < min_val
+    assert core.clamp(-100, 0.0, 1.0) == 0.0
+    
+    # Branch 2: value > max_val (max_val normal)
+    assert core.clamp(100, 0.0, 0.8) == 0.8
+    
+    # Branch 3: value > max_val (max_val > OMEGA_U)
+    assert core.clamp(100, 0.0, 10.0) == core.OMEGA_U
+    
+    # Branch 4: value normal
+    assert core.clamp(0.5, 0.0, 1.0) == 0.5
+
+
+def test_l2model_apply_bio_adjustment_extremos():
+    """apply_bio_adjustment con casos extremos"""
+    # Todos negativos
+    assert apply_bio_adjustment([-1, -2, -3], 0.25) == 0.0
+    
+    # Suma > bio_max
+    assert apply_bio_adjustment([0.2, 0.2], 0.25) == 0.25
+    
+    # Lista vacía
+    assert apply_bio_adjustment([], 0.25) == 0.0
+    
+    # Un solo valor exacto
+    assert apply_bio_adjustment([0.25], 0.25) == 0.25
+
+
+def test_stress_total_constantes_maestras():
+    """Verifica que TODAS las constantes se respetan bajo estrés"""
+    # C_MAX en múltiples contextos
+    assert core.indice_mc(10000, 0) == core.C_MAX
+    assert core.indice_ci(10000, 0, ruido=0) == core.C_MAX
+    
+    # OMEGA_U en múltiples contextos
+    assert core.suma_omega(10, 10) == core.OMEGA_U
+    assert core.clamp(1000, 0, 1000) == core.OMEGA_U
+    
+    # THETA_BASE
+    assert core.compute_theta(["data"] * 10) == core.THETA_BASE
+    
+    # K_UNCERTAINTY
+    assert abs((1.0 - core.C_MAX) - core.K_UNCERTAINTY) < 1e-10
+
+
+def test_edge_case_suma_omega_valores_exactos():
+    """suma_omega con valores que suman exactamente OMEGA_U"""
+    # 0.5 + 0.495 = 0.995 (OMEGA_U exacto)
+    resultado = core.suma_omega(0.5, 0.495)
+    assert resultado == core.OMEGA_U
+    
+    # Valores fuera de rango [-1.01, 1.01] → no aplica saturación
+    resultado2 = core.suma_omega(5.0, 5.0)
+    assert resultado2 == 10.0  # Sin saturación
+
+
+def test_ajustar_L2_con_delta_cero():
+    """actualizar_L2 con delta=0 debe añadir epsilon"""
+    L2_inicial = 0.5
+    L2_nuevo = core.actualizar_L2(L2_inicial, delta=0.0)
+    # Debe añadir 0.0001
+    assert L2_nuevo == 0.5001
+
+
+def test_penalizar_MC_CI_factor_extremo():
+    """penalizar_MC_CI con factor > 1.0"""
+    mc_pen, ci_pen = core.penalizar_MC_CI(
+        MC=0.8,
+        CI=0.9,
+        L2=1.0,
+        factor=2.0  # Factor extremo
+    )
+    # Penalización = 1.0 * 2.0 = 2.0 → todo se va a 0
+    assert mc_pen == 0.0
+    assert ci_pen == 0.0

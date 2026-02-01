@@ -10,44 +10,46 @@ class RespiroState:
 
 @dataclass
 class RespiroConfig:
-    max_interv_rate: int = 100  # Intervenciones por hora
+    max_interv_rate: int = 100
     marginal_gain_threshold: float = 0.05
 
-def detect_respiro(state: RespiroState, config: RespiroConfig, marginal_gain: float = 0.0) -> bool:
+def should_apply(state: Any, config: Any, marginal_gain: float = 0.0) -> bool:
     """
-    Determina si el sistema necesita un 'respiro' basado en saturación o baja eficiencia.
+    Alias principal requerido por test_final y test_presion_prolongada.
     """
-    # Líneas 25-27: Aseguramos inicialización de ventana (Missing anterior)
-    if state.window_start <= 0:
+    # Línea 25-27: Manejo de inicialización de ventana
+    if not hasattr(state, 'window_start') or state.window_start <= 0:
         state.window_start = time.time()
         
     now = time.time()
     elapsed = now - state.window_start
     
-    # Evitar división por cero en milisegundos iniciales
     if elapsed < 0.001:
         return False
 
-    # Línea 60: Control de Tasa (Missing anterior)
-    # Si superamos la tasa permitida de intervenciones, forzamos respiro
-    interv_per_hour = state.intervention_count / (elapsed / 3600)
-    if interv_per_hour > config.max_interv_rate:
+    # Línea 60: Control de Tasa por Hora
+    interv_per_hour = state.intervention_count / (max(elapsed, 1) / 3600)
+    if interv_per_hour > getattr(config, 'max_interv_rate', 100):
         return True
 
-    # Lógica de ganancia marginal
-    return marginal_gain < config.marginal_gain_threshold
+    return marginal_gain < getattr(config, 'marginal_gain_threshold', 0.05)
+
+def evaluar_paz_sistematica(state: Any, config: Any, gain: float) -> bool:
+    """
+    Alias requerido por test_cierre_integrado.
+    """
+    return should_apply(state, config, gain)
 
 def distribute_action(total_energy: float, sensitivities: Dict[str, float]) -> Dict[str, float]:
     """
-    Distribuye la energía de acción proporcionalmente a las sensibilidades detectadas.
+    Distribución de energía con protección de suma cero (Línea 74).
     """
     if not sensitivities:
         return {}
 
     total_sens = sum(sensitivities.values())
 
-    # Línea 74: Protección Crítica (Missing anterior)
-    # Si la suma de sensibilidades es 0, no hay dirección de flujo
+    # Línea 74: Si no hay sensibilidad, la energía no se mueve
     if total_sens <= 0:
         return {k: 0.0 for k in sensitivities}
 

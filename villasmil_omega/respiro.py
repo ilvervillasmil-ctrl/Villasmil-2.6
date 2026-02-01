@@ -15,41 +15,50 @@ class RespiroConfig:
 
 def should_apply(state: Any, config: Any, marginal_gain: float = 0.0) -> bool:
     """
-    Alias principal requerido por test_final y test_presion_prolongada.
+    Lógica central compartida para detectar la necesidad de un respiro.
     """
-    # Línea 25-27: Manejo de inicialización de ventana
+    # Inicialización de ventana (Cobertura Líneas 25-27)
     if not hasattr(state, 'window_start') or state.window_start <= 0:
         state.window_start = time.time()
         
     now = time.time()
     elapsed = now - state.window_start
     
+    # Protección de tiempo mínimo
     if elapsed < 0.001:
         return False
 
-    # Línea 60: Control de Tasa por Hora
+    # Control de Tasa de Intervención (Cobertura Línea 60)
+    # Se usa max(elapsed, 1) para evitar ZeroDivisionError en micro-tiempos
     interv_per_hour = state.intervention_count / (max(elapsed, 1) / 3600)
-    if interv_per_hour > getattr(config, 'max_interv_rate', 100):
+    max_rate = getattr(config, 'max_interv_rate', 100)
+    
+    if interv_per_hour > max_rate:
         return True
 
-    return marginal_gain < getattr(config, 'marginal_gain_threshold', 0.05)
+    # Umbral de ganancia marginal
+    threshold = getattr(config, 'marginal_gain_threshold', 0.05)
+    return marginal_gain < threshold
+
+def detect_respiro(state: Any, config: Any, marginal_gain: float = 0.0) -> bool:
+    """Requerido por tests/test_saturacion_omega.py"""
+    return should_apply(state, config, marginal_gain)
 
 def evaluar_paz_sistematica(state: Any, config: Any, gain: float) -> bool:
-    """
-    Alias requerido por test_cierre_integrado.
-    """
+    """Requerido por tests/test_cierre_integrado.py"""
     return should_apply(state, config, gain)
 
 def distribute_action(total_energy: float, sensitivities: Dict[str, float]) -> Dict[str, float]:
     """
-    Distribución de energía con protección de suma cero (Línea 74).
+    Distribuye energía basándose en sensibilidades. 
+    Protección contra suma cero (Cobertura Línea 74).
     """
     if not sensitivities:
         return {}
 
     total_sens = sum(sensitivities.values())
 
-    # Línea 74: Si no hay sensibilidad, la energía no se mueve
+    # Rama crítica para cobertura: Sensibilidad nula o negativa
     if total_sens <= 0:
         return {k: 0.0 for k in sensitivities}
 

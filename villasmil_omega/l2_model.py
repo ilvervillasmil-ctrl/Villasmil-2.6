@@ -1,6 +1,5 @@
 """
 Modelo L2 para villasmil_omega.
-Certificado para Coherencia v2.6 y Cobertura Total.
 """
 
 from math import exp
@@ -15,23 +14,18 @@ def apply_bio_adjustment(bio_terms, bio_max=0.25):
     """
     if not bio_terms:
         return 0.0
-        
     total = sum(bio_terms)
-    
-    # Ramas explícitas para asegurar cobertura de saturación y negativos
     if total > bio_max:
-        total = float(bio_max)
-    
+        total = bio_max
     if total < 0.0:
         total = 0.0
-        
     return total
 
 
 def compute_L2_base(mc, ci, phi_c=0.0, theta_c=0.0, context_mult=1.0):
     """
     Cálculo base de L2 combinando contexto y métricas internas.
-    L2_base = context_mult * (phi_c * mc + theta_c * ci)
+        L2_base = context_mult * (phi_c * mc + theta_c * ci)
     """
     return context_mult * (phi_c * mc + theta_c * ci)
 
@@ -41,14 +35,10 @@ def ajustar_L2(L2_base, bio_effect):
     Ajusta L2 sumando el efecto biológico y lo acota a [0, 1].
     """
     L2 = L2_base + bio_effect
-    
-    # Clamps de seguridad física (Líneas 36-37 en el reporte de cobertura)
     if L2 < 0.0:
         L2 = 0.0
-        
-    if L2 > 1.0:
+    elif L2 > 1.0:
         L2 = 1.0
-        
     return L2
 
 
@@ -73,29 +63,22 @@ def compute_L2_final(
 ):
     """
     Pipeline completo para L2 con clamps y corrección de límites.
-
-    1) bio_effect = apply_bio_adjustment(bio_terms, bio_max)
-    2) L2_base   = compute_L2_base(mc, ci, phi_c, theta_c, context_mult)
-    3) L2        = ajustar_L2(L2_base, bio_effect)
-    4) Corrige min_L2 y max_L2 si vienen invertidos.
-    5) Aplica clamp final a [min_L2, max_L2].
-    6) Devuelve un diccionario {"L2": L2}.
     """
     bio_effect = apply_bio_adjustment(bio_terms, bio_max=bio_max)
     L2_base = compute_L2_base(mc, ci, phi_c=phi_c, theta_c=theta_c, context_mult=context_mult)
     L2 = ajustar_L2(L2_base, bio_effect)
 
-    # Swap de seguridad si min_L2 > max_L2 (Línea 66 del reporte)
+    # Swap de seguridad si min_L2 > max_L2
     if min_L2 > max_L2:
         min_L2, max_L2 = max_L2, min_L2
 
-    # Clamp operativo al rango [min_L2, max_L2]
+    # Clamp a [min_L2, max_L2]
     if L2 < min_L2:
         L2 = min_L2
     elif L2 > max_L2:
         L2 = max_L2
 
-    # Lógica de saturación bio-max requerida por test_L2_clamp_max (Líneas 87-91)
+    # Lógica de saturación bio-max
     if bio_max > 0 and L2 >= bio_max and max_L2 > bio_max:
         L2 = max_L2
 

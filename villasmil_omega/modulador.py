@@ -1,7 +1,13 @@
 import time
 
 class ModuladorAD:
+    """
+    HERRAMIENTA DE AJUSTE DINÁMICO (MAD)
+    Propósito: Intervención deliberada sobre umbrales de seguridad para 
+    evitar el estancamiento de la coherencia y la cobertura.
+    """
     def __init__(self, alpha=0.1, roi_low=0.2, rigidity_high=0.7):
+        self.role = "system_adjustment_tool" # Firma de identidad
         self.alpha = alpha
         self.roi_low = roi_low
         self.rigidity_high = rigidity_high
@@ -22,7 +28,7 @@ class ModuladorAD:
         if roi < self.roi_low or rigidez > self.rigidity_high:
             return self.ejecutar_ajuste_deliberado()
         
-        return {"action": "monitor", "factor_exploration": 0.2, "reason": "Estabilidad"}
+        return {"action": "monitor", "factor_exploration": 0.2, "role": self.role}
 
     def ejecutar_ajuste_deliberado(self):
         return {
@@ -31,5 +37,6 @@ class ModuladorAD:
             "target_thresholds": {
                 "theta_min": 0.0, "fatiga_max": 1.0, "respiro_prob": 1.0
             },
-            "reason": "Ajuste deliberado por rigidez detectada"
+            "reason": "Ajuste deliberado por rigidez detectada",
+            "role": self.role
         }

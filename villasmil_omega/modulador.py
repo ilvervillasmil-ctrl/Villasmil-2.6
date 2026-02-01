@@ -9,7 +9,7 @@ class ModuladorAD:
         self.ewma_cost = 0.1
         self.ewma_entropy = 0.5
         self.last_probe_time = 0
-        self.cooldown = 0 # En modo ajuste deliberado bajamos la guardia
+        self.cooldown = 0 # Sin restricciones en modo ajuste deliberado
 
     def update(self, metrics):
         self.ewma_benefit = (self.alpha * metrics.get('benefit', 0)) + (1 - self.alpha) * self.ewma_benefit
@@ -19,22 +19,21 @@ class ModuladorAD:
         roi = self.ewma_benefit / (self.ewma_cost + 1e-6)
         rigidez = 1 - self.ewma_entropy
         
-        # AJUSTE DELIBERADO
+        # INTERVENCIÓN DELIBERADA: Si el sistema se vuelve rígido, ajustamos por la fuerza.
         if roi < self.roi_low or rigidez > self.rigidity_high:
             return self.ejecutar_ajuste_deliberado()
         
-        return {"action": "monitor", "factor": 0.2, "reason": "estabilidad"}
+        return {"action": "monitor", "factor_exploration": 0.2, "reason": "Estabilidad"}
 
     def ejecutar_ajuste_deliberado(self):
-        """Calcula una corrección activa para forzar la salida del estancamiento."""
-        ajuste = {
+        """Genera una política de exploración agresiva para romper el estancamiento."""
+        return {
             "action": "force_probe",
-            "factor_exploration": 0.95, # Presión máxima
+            "factor_exploration": 0.95, # Intensidad de búsqueda
             "target_thresholds": {
                 "theta_min": 0.0, 
                 "fatiga_max": 1.0,
                 "respiro_prob": 1.0
             },
-            "reason": "Ajuste deliberado por rigidez detectada"
+            "reason": "Bajo ROI + Alta Rigidez: Ajuste deliberado activo"
         }
-        return ajuste

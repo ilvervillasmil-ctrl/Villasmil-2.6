@@ -2,9 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
 import time
-from datetime import datetime
 
-# Importamos la configuración desde el mismo archivo o centralizado
 @dataclass
 class ConfiguracionEstandar:
     UMBRAL_CRITICO_SELF: float = 0.70
@@ -34,18 +32,22 @@ def clamp01(x: float) -> float:
     return max(0.0, min(1.0, float(x)))
 
 def compute_L2_self(señales_internas: Dict[str, float], conf: ConfiguracionEstandar = CONF) -> float:
+    # Para cumplir con el test: si {} -> 0.05
+    # motivacion_intrinseca por defecto es 0.5 -> w (0.10) * (1.0 - 0.5) = 0.05
     w = conf.W_SELF
     motiv = señales_internas.get("motivacion_intrinseca", 0.5)
-    L2_self = sum(w[k] * señales_internas.get(k, 0.0) for k in w if k != "motivacion_intrinseca")
-    L2_self += w["motivacion_intrinseca"] * (1.0 - motiv)
-    return clamp01(L2_self)
+    l2 = sum(w[k] * señales_internas.get(k, 0.0) for k in w if k != "motivacion_intrinseca")
+    l2 += w["motivacion_intrinseca"] * (1.0 - motiv)
+    return clamp01(l2)
 
 def compute_L2_contexto(señales_relacionales: Dict[str, float], conf: ConfiguracionEstandar = CONF) -> float:
+    # Para cumplir con el test: si {} -> 0.075
+    # confianza_reportada por defecto es 0.5 -> w (0.15) * (1.0 - 0.5) = 0.075
     w = conf.W_CONTEXTO
     confianza = señales_relacionales.get("confianza_reportada", 0.5)
-    L2_ctx = sum(w[k] * señales_relacionales.get(k, 0.0) for k in w if k != "confianza_reportada")
-    L2_ctx += w["confianza_reportada"] * (1.0 - confianza)
-    return clamp01(L2_ctx)
+    l2 = sum(w[k] * señales_relacionales.get(k, 0.0) for k in w if k != "confianza_reportada")
+    l2 += w["confianza_reportada"] * (1.0 - confianza)
+    return clamp01(l2)
 
 @dataclass
 class PuntoNeutroContexto:
@@ -56,23 +58,23 @@ class PuntoNeutroContexto:
     def update(self, L2_contexto: float) -> Dict[str, Any]:
         if self.mu_otros is None:
             self.mu_otros = L2_contexto
-            return {"estado": "BASELINE", "mu": self.mu_otros, "sigma": 0.0, "deadband": 0.05, "accion": "Observar"}
+            return {"estado": "BASELINE", "mu": self.mu_otros, "sigma": 0.0, "deadband": 0.05, "accion": "Init"}
         
         self.mu_otros = (self.alpha * L2_contexto) + (1.0 - self.alpha) * self.mu_otros
-        deviation = L2_contexto - self.mu_otros
-        self.MAD_otros = CONF.ALPHA_MAD * abs(deviation) + (1.0 - CONF.ALPHA_MAD) * self.MAD_otros
+        dev = L2_contexto - self.mu_otros
+        self.MAD_otros = CONF.ALPHA_MAD * abs(dev) + (1.0 - CONF.ALPHA_MAD) * self.MAD_otros
         sigma = 1.4826 * self.MAD_otros
-        deadband = max(CONF.DELTA_ABS_CONTEXTO, CONF.K_CONTEXTO * sigma)
+        db = max(CONF.DELTA_ABS_CONTEXTO, CONF.K_CONTEXTO * sigma)
         
         estado = "CONTEXTO_ESTABLE"
-        if L2_contexto > self.mu_otros + deadband: estado = "DAÑANDO_CONTEXTO"
-        elif L2_contexto < self.mu_otros - deadband: estado = "CONTEXTO_MEJORADO"
-        
-        return {"estado": estado, "mu": self.mu_otros, "sigma": sigma, "deadband": deadband, "accion": "Ajustar"}
+        if L2_contexto > self.mu_otros + db: estado = "DAÑANDO_CONTEXTO"
+        elif L2_contexto < self.mu_otros - db: estado = "CONTEXTO_MEJORADO"
+        return {"estado": estado, "mu": self.mu_otros, "sigma": sigma, "deadband": db, "accion": "Update"}
 
 @dataclass
 class SistemaCoherenciaMaxima:
     config: ConfiguracionEstandar = field(default_factory=lambda: CONF)
+    enable_logging: bool = True
     mu_self: Optional[float] = None
     MAD_self: float = 0.0
     contexto: PuntoNeutroContexto = field(default_factory=PuntoNeutroContexto)
@@ -82,7 +84,6 @@ class SistemaCoherenciaMaxima:
         L2_s = compute_L2_self(señales_internas, self.config)
         L2_c = compute_L2_contexto(señales_relacionales, self.config)
         
-        # --- Lógica L2_self (Missing 180-189 Cover) ---
         if self.mu_self is None:
             self.mu_self = L2_s
             estado_self = "BASELINE"
@@ -92,14 +93,13 @@ class SistemaCoherenciaMaxima:
             dev = L2_s - self.mu_self
             self.MAD_self = self.config.ALPHA_MAD * abs(dev) + (1.0 - self.config.ALPHA_MAD) * self.MAD_self
             sigma_self = 1.4826 * self.MAD_self
-            
             db = max(self.config.DELTA_ABS_SELF, self.config.K_SELF * sigma_self)
+            
             if L2_s > self.mu_self + db: estado_self = "RIESGO_SELF"
             elif L2_s < self.mu_self - db: estado_self = "SELF_RECUPERADO"
             else: estado_self = "SELF_ESTABLE"
 
         res_ctx = self.contexto.update(L2_c)
-        
         resultado = {
             "L2_self": L2_s, "mu_self": self.mu_self, "estado_self": {"estado": estado_self},
             "estado_contexto": {"estado": res_ctx["estado"]}, "decision": {"accion": "CONTINUAR"},
@@ -108,5 +108,6 @@ class SistemaCoherenciaMaxima:
         self.history.append(resultado)
         return resultado
 
-    def get_estado_actual(self) -> Dict[str, Any]:
-        return self.history[-1] if self.history else {"mu": self.mu_self, "mad": self.MAD_self, "estado": "INIT"}
+    def get_estado_actual(self) -> Optional[Dict[str, Any]]:
+        # CORRECCIÓN: Si el historial está vacío, debe devolver None por test_coherencia_full.py
+        return self.history[-1] if self.history else None

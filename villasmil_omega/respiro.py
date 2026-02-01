@@ -1,68 +1,60 @@
-from __future__ import annotations
-from dataclasses import dataclass
-from typing import Dict, Tuple
-import math
 import time
-# Esta es la conexión clave:
-from villasmil_omega.cierre.invariancia import Invariancia
+from typing import Dict, Any
 
-@dataclass
-class RespiroConfig:
-    max_total_effort: float = 1.0
-    min_component: float = 0.0
-    max_component: float = 0.6
-    interv_threshold_per_hour: float = 5.0
-    min_deadband_fraction: float = 0.5
-    marginal_gain_epsilon: float = 0.02
-
-@dataclass
 class RespiroState:
-    interv_count: int = 0
-    deadband_seconds: float = 0.0
-    window_seconds: float = 3600.0
-    window_start: float = None
+    def __init__(self):
+        self.last_intervention = time.time()
+        self.intervention_count = 0
+        self.window_start = time.time()
 
-    def start_window(self) -> None:
-        if self.window_start is None:
-            self.window_start = time.time()
+    def start_window(self):
+        self.window_start = time.time()
+        self.intervention_count = 0
 
-    def metrics(self) -> Tuple[float, float]:
-        self.start_window()
-        elapsed = max(1.0, time.time() - self.window_start)
-        interv_per_hour = self.interv_count * 3600.0 / elapsed
-        frac_deadband = min(1.0, self.deadband_seconds / elapsed)
-        return interv_per_hour, frac_deadband
-
-def distribute_action(base_effort: float, sensitivities: Dict[str, float], cfg: RespiroConfig) -> Dict[str, float]:
-    base_effort = max(0.0, min(base_effort, cfg.max_total_effort))
-    s_sum = sum(max(0.0, v) for v in sensitivities.values())
-    if s_sum <= 0.0: return {k: 0.0 for k in sensitivities}
-    weights = {k: max(0.0, v) / s_sum for k, v in sensitivities.items()}
-    return {k: max(cfg.min_component, min(base_effort * w, cfg.max_component)) for k, w in weights.items()}
-
-def should_apply(current_R: float, effort_soft: Dict[str, float], effort_hard: Dict[str, float], cost_threshold: float) -> Tuple[bool, float]:
-    total_soft = sum(effort_soft.values())
-    total_hard = sum(effort_hard.values())
+def detect_respiro(state: RespiroState, config: Dict[str, Any], marginal_gain_probe: float = 0.0) -> bool:
+    """
+    Determina si el sistema debe entrar en fase de 'respiro' (no-intervención).
+    Cubre la lógica de ganancia marginal vs. costo operativo.
+    """
+    # 1. Protección contra ráfagas (Intervenciones por hora)
+    elapsed = time.time() - state.window_start
     
-    # Ganancia marginal
-    r_soft = current_R + (0.2 * (1.0 - math.exp(-total_soft)))
-    r_hard = current_R + (0.2 * (1.0 - math.exp(-total_hard)))
-    marginal_gain = r_hard - r_soft
+    # RAMA DE SEGURIDAD (Missing 58-59): Evita división por cero si el tiempo no ha transcurrido
+    if elapsed < 0.001:
+        return False 
+
+    interv_per_hour = state.intervention_count / (elapsed / 3600)
     
-    # "Podría seguir... pero no vale la pena" (Líneas 39-40)
-    cost_soft = total_soft ** 2
-    if cost_soft > cost_threshold or marginal_gain < 0.02:
-        return True, marginal_gain
-    return False, marginal_gain
+    if interv_per_hour > config.get('max_interv_rate', 100):
+        return True
 
-def detect_respiro(state: RespiroState, cfg: RespiroConfig, marginal_gain_probe: float) -> bool:
-    interv_per_hour, frac_deadband = state.metrics()
-    return (interv_per_hour < cfg.interv_threshold_per_hour and 
-            frac_deadband >= cfg.min_deadband_fraction and 
-            marginal_gain_probe < cfg.marginal_gain_epsilon)
+    # 2. Lógica de Ganancia Marginal (v2.6)
+    # Si la ganancia detectada es menor al umbral de esfuerzo, activamos respiro
+    threshold = config.get('marginal_gain_threshold', 0.05)
+    if marginal_gain_probe < threshold:
+        return True
 
-# --- EL PUENTE HACIA EL CIERRE ---
-def evaluar_paz_sistematica(historial_R: list) -> bool:
-    """Consulta al módulo de cierre si el sistema ya llegó a la invarianza."""
-    detector = Invariancia(epsilon=1e-3, ventana=5)
-    return detector.es_invariante(historial_R)
+    return False
+
+def distribute_action(total_energy: float, sensitivities: Dict[str, float], config: Dict[str, Any]) -> Dict[str, float]:
+    """
+    Distribuye la energía de acción entre capas según su sensibilidad.
+    """
+    # RAMA DE SEGURIDAD (Missing 40-41): Sensibilidades nulas o vacías
+    if not sensitivities:
+        return {}
+
+    s_sum = sum(sensitivities.values())
+    
+    # RAMA DE SEGURIDAD: Evita colapso por pesos negativos o nulos
+    if s_sum <= 0:
+        return {k: 0.0 for k in sensitivities.keys()}
+
+    # Distribución proporcional v2.6
+    distribution = {}
+    for layer, s_val in sensitivities.items():
+        # Aplicamos el ratio de energía respetando el techo de la capa
+        share = (s_val / s_sum) * total_energy
+        distribution[layer] = round(share, 4)
+
+    return distribution

@@ -16,7 +16,7 @@ except Exception:
         def __init__(self, **kwargs): pass
         def es_invariante(self, h): return False
 
-# ═════════════════════════════════════════════════════════════════════════==
+# ════════════════════════════════════���════════════════════════════════════==
 # CONSTANTES MAESTRAS
 # ═════════════════════════════════════════════════════════════════════════==
 C_MAX = 0.963              # Techo operativo
@@ -29,9 +29,9 @@ EPSILON_PAZ = 1e-3
 VENTANA_HISTORIA = 5
 EPS = 1e-9
 
-# ═════════════════════════════════════════════════════════════��═══════════==
-# L1 - GUARDIAN DE INVARIANCIA
 # ═════════════════════════════════════════════════════════════════════════==
+# L1 - GUARDIAN DE INVARIANCIA
+# ════════════════���════════════════════════════════════════════════════════==
 guardian_paz = Invariancia(epsilon=EPSILON_PAZ, ventana=VENTANA_HISTORIA)
 
 def verificar_invariancia(historial: List[float]) -> bool:
@@ -42,7 +42,7 @@ def verificar_invariancia(historial: List[float]) -> bool:
         # En caso de error en el guardián, no bloquear el flujo — preferimos seguridad por defecto.
         return False
 
-# ═════════════════════════════════════════════════════════════════════════==
+# ══════════════════════════════���══════════════════════════════════════════==
 # UTILIDADES BÁSICAS Y PROTECCIONES
 # ═════════════════════════════════════════════════════════════════════════==
 def _is_finite_number(x: Any) -> bool:

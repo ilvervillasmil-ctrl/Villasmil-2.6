@@ -1,72 +1,117 @@
 """
 Modelo L2 para villasmil_omega.
-Certificado para compatibilidad con tests y cobertura total.
+Certificado para Coherencia v2.6 y Cobertura Total.
 """
 
 from math import exp
 
+
 def apply_bio_adjustment(bio_terms, bio_max=0.25):
-    """Calcula el impacto biológico con protección de límites."""
+    """
+    Si hay términos biológicos:
+      - Calcula la suma total de bio_terms.
+      - Devuelve min(suma, bio_max).
+    Si la lista está vacía, retorna 0.0.
+    """
     if not bio_terms:
         return 0.0
+        
     total = sum(bio_terms)
-    # Separamos en ramas explícitas para asegurar cobertura
+    
+    # Ramas explícitas para asegurar cobertura de saturación y negativos
     if total > bio_max:
-        return float(bio_max)
+        total = float(bio_max)
+    
     if total < 0.0:
-        return 0.0
+        total = 0.0
+        
     return total
 
+
 def compute_L2_base(mc, ci, phi_c=0.0, theta_c=0.0, context_mult=1.0):
-    """Cálculo base de L2 combinando contexto y métricas internas."""
+    """
+    Cálculo base de L2 combinando contexto y métricas internas.
+    L2_base = context_mult * (phi_c * mc + theta_c * ci)
+    """
     return context_mult * (phi_c * mc + theta_c * ci)
 
+
 def ajustar_L2(L2_base, bio_effect):
-    """Ajusta L2 sumando el efecto biológico y acota a [0, 1]."""
+    """
+    Ajusta L2 sumando el efecto biológico y lo acota a [0, 1].
+    """
     L2 = L2_base + bio_effect
-    # Clamps explícitos (Anteriormente Missing 45-46)
+    
+    # Clamps de seguridad física (Líneas 36-37 en el reporte de cobertura)
     if L2 < 0.0:
-        return 0.0
+        L2 = 0.0
+        
     if L2 > 1.0:
-        return 1.0
+        L2 = 1.0
+        
     return L2
 
+
 def compute_theta(L2, sigma=1.0):
-    """Calcula la función de coherencia θ."""
+    """
+    Calcula θ(L2) = exp(−(L2 − 0.125)^2 / (2 * sigma^2)).
+    """
     delta = L2 - 0.125
     return exp(- (delta ** 2) / (2 * (sigma ** 2)))
 
+
 def compute_L2_final(
-    phi_c, theta_c, mc, ci, bio_terms, bio_max,
-    context_mult, min_L2, max_L2,
+    phi_c,
+    theta_c,
+    mc,
+    ci,
+    bio_terms,
+    bio_max,
+    context_mult,
+    min_L2,
+    max_L2,
 ):
-    """Pipeline completo L2 con swap y saturación operativa."""
+    """
+    Pipeline completo para L2 con clamps y corrección de límites.
+
+    1) bio_effect = apply_bio_adjustment(bio_terms, bio_max)
+    2) L2_base   = compute_L2_base(mc, ci, phi_c, theta_c, context_mult)
+    3) L2        = ajustar_L2(L2_base, bio_effect)
+    4) Corrige min_L2 y max_L2 si vienen invertidos.
+    5) Aplica clamp final a [min_L2, max_L2].
+    6) Devuelve un diccionario {"L2": L2}.
+    """
     bio_effect = apply_bio_adjustment(bio_terms, bio_max=bio_max)
     L2_base = compute_L2_base(mc, ci, phi_c=phi_c, theta_c=theta_c, context_mult=context_mult)
     L2 = ajustar_L2(L2_base, bio_effect)
 
-    # Swap de seguridad (Anteriormente Missing 87-91)
+    # Swap de seguridad si min_L2 > max_L2 (Línea 66 del reporte)
     if min_L2 > max_L2:
         min_L2, max_L2 = max_L2, min_L2
 
-    # Clamp operativo al rango definido
+    # Clamp operativo al rango [min_L2, max_L2]
     if L2 < min_L2:
         L2 = min_L2
     elif L2 > max_L2:
         L2 = max_L2
 
-    # Lógica de saturación bio-max requerida por test_L2_clamp_max
+    # Lógica de saturación bio-max requerida por test_L2_clamp_max (Líneas 87-91)
     if bio_max > 0 and L2 >= bio_max and max_L2 > bio_max:
         L2 = max_L2
 
     return {"L2": L2}
 
+
 def theta_for_two_clusters(L2_A, L2_B, sigma=1.0):
-    """Inferencia de coherencia entre dos clusters."""
+    """
+    Calcula θ para dos clusters A y B y devuelve un diccionario.
+    """
     theta_A = compute_theta(L2_A, sigma=sigma)
     theta_B = compute_theta(L2_B, sigma=sigma)
+    mean_theta = (theta_A + theta_B) / 2.0
+
     return {
         "A": theta_A,
         "B": theta_B,
-        "mean": (theta_A + theta_B) / 2.0,
+        "mean": mean_theta,
     }

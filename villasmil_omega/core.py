@@ -16,7 +16,7 @@ except Exception:
         def __init__(self, **kwargs): pass
         def es_invariante(self, h): return False
 
-# ══════���════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════==
 # CONSTANTES MAESTRAS
 # ═════════════════════════════════════════════════════════════════════════==
 C_MAX = 0.963              # Techo operativo
@@ -29,9 +29,9 @@ EPSILON_PAZ = 1e-3
 VENTANA_HISTORIA = 5
 EPS = 1e-9
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════��═══════════==
 # L1 - GUARDIAN DE INVARIANCIA
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════==
 guardian_paz = Invariancia(epsilon=EPSILON_PAZ, ventana=VENTANA_HISTORIA)
 
 def verificar_invariancia(historial: List[float]) -> bool:
@@ -42,7 +42,7 @@ def verificar_invariancia(historial: List[float]) -> bool:
         # En caso de error en el guardián, no bloquear el flujo — preferimos seguridad por defecto.
         return False
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════==
 # UTILIDADES BÁSICAS Y PROTECCIONES
 # ═════════════════════════════════════════════════════════════════════════==
 def _is_finite_number(x: Any) -> bool:
@@ -98,9 +98,9 @@ def suma_omega(a: float, b: float) -> float:
         return min(resultado, OMEGA_U)
     return resultado
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════==
 # L3 - RAÍZ DE RITMO (Metrónomo)
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════==
 def calcular_raiz_ritmo(historial: List[float], centro: Optional[float] = None) -> float:
     """
     L3 - Metrónomo. Índice de estabilidad basado en RMSE normalizado con raíz.
@@ -136,7 +136,7 @@ def calcular_raiz_ritmo(historial: List[float], centro: Optional[float] = None) 
     indice_raw = 1.0 - math.sqrt(dev_norm)
     return clamp(indice_raw, 0.0, OMEGA_U)
 
-# ═══════════════════════════════════════════════════════════════════════════
+# ═════════════════════════════════════════════════════════════════════════==
 # L2 - MASA CRÍTICA (MC) Y COHERENCIA INTEGRADA (CI)
 # ═════════════════════════════════════════════════════════════════════════==
 def indice_mc(*args) -> float:
@@ -203,7 +203,7 @@ def ajustar_mc_ci_por_coherencia(mc_base: float, ci_base: float, res_coherencia:
 
     return clamp(mc_base * factor, 0.0, C_MAX), clamp(ci_base * factor, 0.0, C_MAX)
 
-# ════════════════════════════════════════════════════════════════════════��==
+# ═════════════════════════════════════════════════════════════════════════==
 # L3 - TENSION GLOBAL (THETA) + compatibilidades
 # ═════════════════════════════════════════════════════════════════════════==
 def calcular_theta(cluster: List[Any]) -> float:
@@ -232,7 +232,7 @@ def theta_for_two_clusters(c1: List[Any], c2: List[Any]) -> Dict[str, float]:
 
 # ═════════════════════════════════════════════════════════════════════════==
 # L4 - PROCESADOR OMEGA (INGESTION ROBUSTA + DECISIONES)
-# ══════════��══════════════════════════════════════════════════════════════==
+# ═════════════════════════════════════════════════════════════════════════==
 def procesar_flujo_omega(data: List[Any], directiva: Dict[str, Any]) -> Dict[str, Any]:
     """
     Integración total de búnkeres con ingestión robusta.

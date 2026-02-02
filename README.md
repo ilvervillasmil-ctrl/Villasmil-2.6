@@ -4,7 +4,7 @@ Python package: `villasmil_omega`
 Author: Ilver Villasmil — The Arquitecto  
 Repository: https://github.com/ilvervillasmil/Villasmil-2.6  
 
-**📖 [¿Para qué es esta sesión? / What is this session for?](SESION.md)** — Guía completa sobre sesiones en Villasmil-Ω
+**📖 [¿Para qué es esta sesión? / What is this session for?](SESION.md)** — Guía completa sobre sesiones en Villasmil-Ω | Complete guide to sessions in Villasmil-Ω
 
 Current status:
 - All automated tests pass both locally (Codespaces) and on GitHub Actions.
@@ -94,7 +94,7 @@ Paquete Python: `villasmil_omega`
 Autor: Ilver Villasmil — The Arquitecto  
 Repositorio: https://github.com/ilvervillasmil/Villasmil-2.6  
 
-**📖 [¿Para qué es esta sesión? / What is this session for?](SESION.md)** — Guía completa sobre sesiones en Villasmil-Ω
+**📖 [¿Para qué es esta sesión? / What is this session for?](SESION.md)** — Guía completa sobre sesiones en Villasmil-Ω | Complete guide to sessions in Villasmil-Ω
 
 Estado actual:
 - Todas las pruebas automatizadas pasan tanto en local (Codespaces) como en GitHub Actions.

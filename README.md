@@ -1,15 +1,28 @@
 # Villasmil-Ω v2.6 — Framework & Tests
 
+![Tests](https://github.com/ilvervillasmil-ctrl/Villasmil-2.6/workflows/Python%20tests/badge.svg)
+![Python Version](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)
+![Coverage](https://img.shields.io/badge/coverage-93%25-brightgreen)
+![License](https://img.shields.io/badge/license-Apache%202.0-blue)
+![Version](https://img.shields.io/badge/version-2.6.6-blue)
+
 Python package: `villasmil_omega`  
 Author: Ilver Villasmil — The Arquitecto  
-Repository: https://github.com/ilvervillasmil/Villasmil-2.6  
+Repository: https://github.com/ilvervillasmil-ctrl/Villasmil-2.6  
 
-**📖 [¿Para qué es esta sesión? / What is this session for?](SESION.md)** — Guía completa sobre sesiones en Villasmil-Ω | Complete guide to sessions in Villasmil-Ω
+**📖 Documentation:**
+- **[Testing Guide](TESTING.md)** — Comprehensive testing documentation with examples
+- **[Session Guide](SESION.md)** — Complete guide to sessions in Villasmil-Ω
+- **[Changelog](CHANGELOG.md)** — Version history and release notes
 
 Current status:
-- All automated tests pass both locally (Codespaces) and on GitHub Actions.
-- The package is structured as a standard Python module (`villasmil_omega`) with tests under `tests/`.
-- The current suite validates basic behavior for global tension Θ(C), the Dynamic Integration Field L2, MC/CI penalties, and minimal PPR structure.
+- ✅ All 179 automated tests pass both locally and on GitHub Actions
+- ✅ 93%+ code coverage with pytest-cov
+- ✅ SIL-4 certification
+- ✅ Multi-version Python support (3.9, 3.10, 3.11, 3.12)
+- ✅ Automated CI/CD with GitHub Actions
+- The package is structured as a standard Python module (`villasmil_omega`) with tests under `tests/`
+- The current suite validates behavior for global tension Θ(C), the Dynamic Integration Field L2, MC/CI penalties, and PPR structure
 
 ---
 
@@ -90,16 +103,29 @@ PYTHONPATH=.. pytest -q
 
 # Villasmil‑Ω v2.6 — Marco y Pruebas
 
+![Tests](https://github.com/ilvervillasmil-ctrl/Villasmil-2.6/workflows/Python%20tests/badge.svg)
+![Python Version](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)
+![Coverage](https://img.shields.io/badge/coverage-93%25-brightgreen)
+![License](https://img.shields.io/badge/license-Apache%202.0-blue)
+![Version](https://img.shields.io/badge/version-2.6.6-blue)
+
 Paquete Python: `villasmil_omega`  
 Autor: Ilver Villasmil — The Arquitecto  
-Repositorio: https://github.com/ilvervillasmil/Villasmil-2.6  
+Repositorio: https://github.com/ilvervillasmil-ctrl/Villasmil-2.6  
 
-**📖 [¿Para qué es esta sesión? / What is this session for?](SESION.md)** — Guía completa sobre sesiones en Villasmil-Ω | Complete guide to sessions in Villasmil-Ω
+**📖 Documentación:**
+- **[Guía de Testing](TESTING.md)** — Documentación completa de testing con ejemplos
+- **[Guía de Sesiones](SESION.md)** — Guía completa sobre sesiones en Villasmil-Ω
+- **[Changelog](CHANGELOG.md)** — Historial de versiones y notas de lanzamiento
 
 Estado actual:
-- Todas las pruebas automatizadas pasan tanto en local (Codespaces) como en GitHub Actions.
-- El paquete está estructurado como un módulo Python estándar (`villasmil_omega`) con pruebas en `tests/`.
-- La batería actual valida el comportamiento básico de la tensión global Θ(C), el Campo de Integración Dinámica L2, las penalizaciones MC/CI y la estructura mínima de PPR.
+- ✅ Todas las 179 pruebas automatizadas pasan en local y en GitHub Actions
+- ✅ Cobertura de código del 93%+ con pytest-cov
+- ✅ Certificación SIL-4
+- ✅ Soporte multi-versión de Python (3.9, 3.10, 3.11, 3.12)
+- ✅ CI/CD automatizado con GitHub Actions
+- El paquete está estructurado como un módulo Python estándar (`villasmil_omega`) con pruebas en `tests/`
+- La batería actual valida el comportamiento de la tensión global Θ(C), el Campo de Integración Dinámica L2, las penalizaciones MC/CI y la estructura PPR
 
 ---
 

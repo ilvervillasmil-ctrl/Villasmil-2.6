@@ -116,4 +116,4 @@ jobs:
         git config --local user.name "github-actions[bot]"
         git add CHANGELOG.md
         git commit -m "Update CHANGELOG for ${{ steps.get_version.outputs.TAG }}" || echo "No changes to commit"
-        git push origin HEAD:main || echo "Could not push changelog update"
+        git push origin HEAD:main || echo "Could not push changelog update - this is expected if running on a fork or without write permissions"

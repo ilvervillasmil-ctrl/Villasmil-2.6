@@ -41,7 +41,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ---
 
-## [2.6.6] - 2024
+## [2.6.6] - 2024-01-01
 
 ### Added / Agregado
 - Certificación SIL-4
@@ -63,7 +63,7 @@ y este proyecto adhiere a [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ---
 
-## [2.6.0] - 2024
+## [2.6.0] - 2024-01-01
 
 ### Added / Agregado
 - Framework inicial Villasmil-Ω v2.6
